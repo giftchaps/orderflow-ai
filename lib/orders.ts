@@ -22,7 +22,7 @@ export const orderSchema = z.object({
   customer_phone: z.string().optional(),
   placed_at: z.string(),
   items: z.array(orderItemSchema),
-  special_instructions: z.string().optional(),
+  special_instructions: z.string().nullable().optional(),
 })
 
 export type Order = z.infer<typeof orderSchema>
