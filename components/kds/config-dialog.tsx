@@ -26,46 +26,60 @@ export function ConfigDialog({ onConnect, onDemo }: ConfigDialogProps) {
   const [status, setStatus] = useState<ConnectionStatus>("idle")
   const [error, setError] = useState<ValidationError | null>(null)
 
-  const validateInputs = (): ValidationError | null => {
+  // Sanitize business ID by removing common prefixes like "ID:" or "id:"
+  const sanitizeBusinessId = (id: string): string => {
+    let sanitized = id.trim()
+    // Remove common prefixes
+    if (sanitized.toLowerCase().startsWith("id:")) {
+      sanitized = sanitized.substring(3).trim()
+    }
+    return sanitized
+  }
+
+  const validateInputs = (): { error: ValidationError | null; sanitizedBusinessId: string } => {
     // Validate URL format
     if (!url.trim()) {
-      return { field: "url", message: "Supabase URL is required" }
+      return { error: { field: "url", message: "Supabase URL is required" }, sanitizedBusinessId: "" }
     }
     
     const urlPattern = /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co$/
     if (!urlPattern.test(url.trim())) {
       return { 
-        field: "url", 
-        message: "Invalid URL format. Expected: https://xxxxx.supabase.co" 
+        error: { field: "url", message: "Invalid URL format. Expected: https://xxxxx.supabase.co" },
+        sanitizedBusinessId: ""
       }
     }
 
     // Validate API key format (JWT)
     if (!key.trim()) {
-      return { field: "key", message: "Supabase Anon Key is required" }
+      return { error: { field: "key", message: "Supabase Anon Key is required" }, sanitizedBusinessId: "" }
     }
     
     if (!key.startsWith("eyJ") || key.length < 100) {
       return { 
-        field: "key", 
-        message: "Invalid API key format. Should start with 'eyJ' and be a JWT token" 
+        error: { field: "key", message: "Invalid API key format. Should start with 'eyJ' and be a JWT token" },
+        sanitizedBusinessId: ""
       }
     }
 
     // Validate business ID (UUID format)
     if (!businessId.trim()) {
-      return { field: "businessId", message: "Business ID is required" }
+      return { error: { field: "businessId", message: "Business ID is required" }, sanitizedBusinessId: "" }
     }
     
+    const sanitizedId = sanitizeBusinessId(businessId)
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidPattern.test(businessId.trim())) {
+    if (!uuidPattern.test(sanitizedId)) {
       return { 
-        field: "businessId", 
-        message: "Invalid Business ID format. Expected UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)" 
+        error: { 
+          field: "businessId", 
+          message: "Invalid Business ID format. Expected UUID (e.g., 123e4567-e89b-12d3-a456-426614174000). Remove any 'ID:' prefix." 
+        },
+        sanitizedBusinessId: ""
       }
     }
 
-    return null
+    return { error: null, sanitizedBusinessId: sanitizedId }
   }
 
   const testConnection = async () => {
@@ -73,7 +87,7 @@ export function ConfigDialog({ onConnect, onDemo }: ConfigDialogProps) {
     setError(null)
     
     // Validate inputs first
-    const validationError = validateInputs()
+    const { error: validationError, sanitizedBusinessId } = validateInputs()
     if (validationError) {
       setError(validationError)
       return
@@ -89,7 +103,7 @@ export function ConfigDialog({ onConnect, onDemo }: ConfigDialogProps) {
       const { data, error: queryError } = await supabase
         .from("orders")
         .select("id")
-        .eq("business_id", businessId.trim())
+        .eq("business_id", sanitizedBusinessId)
         .limit(1)
 
       if (queryError) {
@@ -138,7 +152,7 @@ export function ConfigDialog({ onConnect, onDemo }: ConfigDialogProps) {
       
       // Wait a moment to show success state, then connect
       setTimeout(() => {
-        onConnect(url.trim(), key.trim(), businessId.trim())
+        onConnect(url.trim(), key.trim(), sanitizedBusinessId)
       }, 1000)
 
     } catch (err) {
