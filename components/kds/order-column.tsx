@@ -2,7 +2,8 @@
 
 import { Clock, ChefHat, Bell, Inbox } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { OrderCard, Order } from "./order-card"
+import { OrderCard } from "./order-card"
+import type { Order } from "@/lib/orders"
 
 interface OrderColumnProps {
   title: string

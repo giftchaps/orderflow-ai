@@ -1,35 +1,36 @@
 # orderflow-ai
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Kitchen display interface for live restaurant orders, built with Next.js and wired to Supabase through protected server-side API routes.
 
-## Built with v0
+## Security changes
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+The app no longer accepts Supabase credentials in the browser or stores them in `localStorage`.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_kXGHfnr9BCgzinspIWnbMhyWItuv)
+- Database access now runs on the server only.
+- Order reads and writes go through `/api/orders`.
+- `/api/health/db` validates environment setup and database reachability.
+- Invalid status transitions are rejected on the server.
+- Basic hardening headers are applied in `next.config.mjs`.
 
-## Getting Started
+## Environment setup
 
-First, run the development server:
+Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ORDERFLOW_BUSINESS_ID=123e4567-e89b-12d3-a456-426614174000
+```
+
+`ORDERFLOW_BUSINESS_ID` must match the business whose active orders should be shown in the kitchen display.
+
+## Getting started
+
+```bash
+pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
-
-<a href="https://v0.app/chat/api/kiro/clone/giftchaps/orderflow-ai" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+If the environment is missing or invalid, the app shows a setup dialog with the exact configuration issues. You can still use demo mode without a database.

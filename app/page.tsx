@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { createClient, SupabaseClient } from "@supabase/supabase-js"
-import { Header, ConnectionStatus } from "@/components/kds/header"
-import { OrderColumn } from "@/components/kds/order-column"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ConfigDialog } from "@/components/kds/config-dialog"
+import { Header, type ConnectionStatus } from "@/components/kds/header"
+import { OrderColumn } from "@/components/kds/order-column"
 import { OrderToast } from "@/components/kds/order-toast"
-import { Order } from "@/components/kds/order-card"
+import type { Order } from "@/lib/orders"
 
-// Demo data for testing without Supabase
 const DEMO_ORDERS: Order[] = [
   {
     id: "demo-1",
@@ -21,7 +19,7 @@ const DEMO_ORDERS: Order[] = [
       {
         name: "Michelangelo",
         qty: 1,
-        bread: "12\" Sub",
+        bread: '12" Sub',
         mods: [
           { type: "remove", item: "no cherry peppers" },
           { type: "add", item: "extra provolone" },
@@ -39,11 +37,11 @@ const DEMO_ORDERS: Order[] = [
     customer_phone: "+1 203 555 0211",
     placed_at: new Date(Date.now() - 8 * 60000).toISOString(),
     items: [
-      { name: "Chicken Parm", qty: 2, bread: "6\" Sub", mods: [] },
+      { name: "Chicken Parm", qty: 2, bread: '6" Sub', mods: [] },
       {
         name: "Meatball Parmesan",
         qty: 1,
-        bread: "12\" Sub",
+        bread: '12" Sub',
         mods: [{ type: "add", item: "extra sauce" }],
       },
     ],
@@ -68,18 +66,35 @@ const DEMO_ORDERS: Order[] = [
   },
 ]
 
-// Channel label helper
+interface HealthResponse {
+  ok: boolean
+  status?: "connected" | "misconfigured" | "error"
+  message?: string
+  issues?: string[]
+}
+
+interface OrdersSuccessResponse {
+  ok: true
+  orders: Order[]
+}
+
+interface OrdersErrorResponse {
+  ok: false
+  message?: string
+  issues?: string[]
+}
+
 function getChannelLabel(channel: Order["channel"]): string {
   const labels = {
     phone: "PHONE",
     whatsapp_text: "WHATSAPP",
     whatsapp_voice: "VOICE NOTE",
     sms: "SMS",
-  }
+  } satisfies Record<Order["channel"], string>
+
   return labels[channel]
 }
 
-// Audio alert
 function playAlert() {
   try {
     const ctx = new AudioContext()
@@ -90,242 +105,250 @@ function playAlert() {
       gain.connect(ctx.destination)
       osc.frequency.value = 880
       gain.gain.setValueAtTime(0.4, ctx.currentTime + delay / 1000)
-      gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        ctx.currentTime + delay / 1000 + 0.3
-      )
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay / 1000 + 0.3)
       osc.start(ctx.currentTime + delay / 1000)
       osc.stop(ctx.currentTime + delay / 1000 + 0.3)
     })
   } catch {
-    // Audio context not available
+    // Audio context is not always available.
   }
 }
 
-interface Config {
-  url: string
-  key: string
-  businessId: string
+function isOrdersErrorResponse(
+  payload: OrdersSuccessResponse | OrdersErrorResponse
+): payload is OrdersErrorResponse {
+  return payload.ok === false
 }
 
 export default function KitchenDisplay() {
   const [orders, setOrders] = useState<Order[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set())
-  const [config, setConfig] = useState<Config | null>(null)
   const [demoMode, setDemoMode] = useState(false)
-  const [showConfig, setShowConfig] = useState(true)
+  const [showConfig, setShowConfig] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected")
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const supabaseRef = useRef<SupabaseClient | null>(null)
-  const configRef = useRef<Config | null>(null)
+  const healthIssuesRef = useRef<string[]>([])
+  const newOrderTimeoutRef = useRef<number | null>(null)
 
-  // Check for saved config on mount
-  useEffect(() => {
-    const url = localStorage.getItem("kds_url")
-    const key = localStorage.getItem("kds_key")
-    const businessId = localStorage.getItem("kds_biz")
-    if (url && key && businessId) {
-      setConfig({ url, key, businessId })
-      setShowConfig(false)
-    }
-  }, [])
-
-  // Show toast helper
   const showToast = useCallback((message: string) => {
     setToast(message)
-    setTimeout(() => setToast(null), 3000)
+    window.setTimeout(() => setToast(null), 3000)
   }, [])
 
-  // Fetch orders function (reusable for refresh)
-  const fetchOrders = useCallback(async (supabase: SupabaseClient, businessId: string) => {
-    try {
-      console.log("[v0] Fetching orders for business:", businessId)
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("business_id", businessId)
-        .in("status", ["pending", "making", "ready"])
-        .order("placed_at", { ascending: true })
+  const setNewOrders = useCallback((orderIds: string[]) => {
+    if (newOrderTimeoutRef.current) {
+      window.clearTimeout(newOrderTimeoutRef.current)
+    }
 
-      if (error) {
-        console.error("[v0] Supabase fetch error:", error)
+    setNewOrderIds(new Set(orderIds))
+    newOrderTimeoutRef.current = window.setTimeout(() => {
+      setNewOrderIds(new Set())
+      newOrderTimeoutRef.current = null
+    }, 3000)
+  }, [])
+
+  const syncOrders = useCallback(async () => {
+    try {
+      const response = await fetch("/api/orders", { cache: "no-store" })
+      const payload = (await response.json()) as OrdersSuccessResponse | OrdersErrorResponse
+
+      if (!response.ok) {
+        const errorPayload = isOrdersErrorResponse(payload)
+          ? payload
+          : { ok: false as const, message: "Unable to load orders.", issues: [] }
+        const message = errorPayload.issues?.length
+          ? errorPayload.issues.join(" ")
+          : errorPayload.message || "Unable to load orders."
+
+        healthIssuesRef.current = errorPayload.issues ?? []
         setConnectionStatus("error")
-        setConnectionError(error.message)
+        setConnectionError(message)
+        setShowConfig(true)
         return
       }
 
-      console.log("[v0] Orders fetched:", data?.length || 0, "orders")
-      if (data && data.length > 0) {
-        console.log("[v0] First order:", JSON.stringify(data[0], null, 2))
+      if (isOrdersErrorResponse(payload)) {
+        const message = payload.issues?.length
+          ? payload.issues.join(" ")
+          : payload.message || "Unable to load orders."
+
+        healthIssuesRef.current = payload.issues ?? []
+        setConnectionStatus("error")
+        setConnectionError(message)
+        setShowConfig(true)
+        return
       }
-      setOrders(data as Order[])
+
+      setOrders((currentOrders) => {
+        const currentIds = new Set(currentOrders.map((order) => order.id))
+        const insertedOrders = payload.orders.filter((order) => !currentIds.has(order.id))
+
+        if (insertedOrders.length > 0 && currentOrders.length > 0) {
+          setNewOrders(insertedOrders.map((order) => order.id))
+          playAlert()
+          showToast(
+            `New order #${insertedOrders[0].order_number} - ${getChannelLabel(insertedOrders[0].channel)}`
+          )
+        }
+
+        if (payload.orders.length === 0) {
+          setNewOrderIds(new Set())
+        }
+
+        return payload.orders
+      })
+
+      healthIssuesRef.current = []
       setConnectionStatus("connected")
       setConnectionError(null)
-    } catch (err) {
-      console.error("[v0] Connection error:", err)
+      setShowConfig(false)
+    } catch (error) {
       setConnectionStatus("error")
-      setConnectionError(err instanceof Error ? err.message : "Failed to connect")
+      setConnectionError(error instanceof Error ? error.message : "Failed to connect")
+      setShowConfig(true)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [setNewOrders, showToast])
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    await syncOrders()
+  }, [syncOrders])
+
+  useEffect(() => {
+    if (demoMode) {
+      return
+    }
+
+    let cancelled = false
+
+    const bootstrap = async () => {
+      setConnectionStatus("connecting")
+      setConnectionError(null)
+
+      try {
+        const response = await fetch("/api/health/db", { cache: "no-store" })
+        const payload = (await response.json()) as HealthResponse
+
+        if (cancelled) {
+          return
+        }
+
+        if (!response.ok || !payload.ok) {
+          setConnectionStatus("error")
+          setConnectionError(payload.message || "Database connection failed.")
+          healthIssuesRef.current = payload.issues ?? []
+          setShowConfig(true)
+          return
+        }
+
+        await syncOrders()
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+        setConnectionStatus("error")
+        setConnectionError(
+          error instanceof Error ? error.message : "Database connection failed."
+        )
+        setShowConfig(true)
+      }
+    }
+
+    void bootstrap()
+
+    const interval = window.setInterval(() => {
+      void syncOrders()
+    }, 15000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [demoMode, syncOrders])
+
+  useEffect(() => {
+    if (!demoMode) {
+      return
+    }
+
+    setOrders(DEMO_ORDERS)
+    setNewOrderIds(new Set())
+    setConnectionStatus("connected")
+    setConnectionError(null)
+    setShowConfig(false)
+  }, [demoMode])
+
+  useEffect(() => {
+    return () => {
+      if (newOrderTimeoutRef.current) {
+        window.clearTimeout(newOrderTimeoutRef.current)
+      }
     }
   }, [])
 
-  // Manual refresh handler
-  const handleRefresh = useCallback(async () => {
-    if (!supabaseRef.current || !configRef.current) return
-    setIsRefreshing(true)
-    await fetchOrders(supabaseRef.current, configRef.current.businessId)
-    setIsRefreshing(false)
-  }, [fetchOrders])
+  const handleStatusChange = async (orderId: string, newStatus: Order["status"]) => {
+    if (demoMode) {
+      setOrders((currentOrders) =>
+        currentOrders
+          .map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+          .filter((order) => !["done", "cancelled"].includes(order.status))
+      )
 
-  // Connect to Supabase
-  useEffect(() => {
-    if (!config) {
-      setConnectionStatus("disconnected")
+      if (newStatus === "ready") {
+        showToast("Customer notified - order is ready!")
+      }
+
       return
     }
 
-    setConnectionStatus("connecting")
-    setConnectionError(null)
-    configRef.current = config
-
-    const supabase = createClient(config.url, config.key)
-    supabaseRef.current = supabase
-
-    // Initial fetch with connection validation
-    fetchOrders(supabase, config.businessId)
-
-    // Real-time subscription
-    const channel = supabase
-      .channel("orders-channel")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `business_id=eq.${config.businessId}`,
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newOrder = payload.new as Order
-            setOrders((prev) => [...prev, newOrder])
-            setNewOrderIds((prev) => new Set([...prev, newOrder.id]))
-            playAlert()
-            showToast(
-              `New order #${newOrder.order_number} — ${getChannelLabel(newOrder.channel)}`
-            )
-            setTimeout(() => {
-              setNewOrderIds((prev) => {
-                const next = new Set(prev)
-                next.delete(newOrder.id)
-                return next
-              })
-            }, 3000)
-          }
-          if (payload.eventType === "UPDATE") {
-            setOrders((prev) =>
-              prev
-                .map((o) => (o.id === payload.new.id ? (payload.new as Order) : o))
-                .filter((o) => !["done", "cancelled"].includes(o.status))
-            )
-          }
-          if (payload.eventType === "DELETE") {
-            setOrders((prev) =>
-              prev.filter((o) => o.id !== (payload.old as Order).id)
-            )
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          setConnectionStatus("connected")
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          setConnectionStatus("error")
-          setConnectionError("Real-time subscription failed")
-        }
+        body: JSON.stringify({ status: newStatus }),
       })
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [config, showToast])
+      const payload = (await response.json()) as { ok: boolean; message?: string }
 
-  // Demo mode
-  useEffect(() => {
-    if (demoMode) {
-      setOrders(DEMO_ORDERS)
-      setShowConfig(false)
-      setConnectionStatus("connected")
-      setConnectionError(null)
-    }
-  }, [demoMode])
-
-  // Handle status changes
-  const handleStatusChange = async (
-    orderId: string,
-    newStatus: Order["status"]
-  ) => {
-    if (demoMode) {
-      setOrders((prev) =>
-        prev
-          .map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-          .filter((o) => !["done", "cancelled"].includes(o.status))
-      )
-      if (newStatus === "ready") {
-        showToast("Customer notified — order is ready!")
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.message || "Unable to update order.")
       }
-      return
-    }
 
-    if (!supabaseRef.current) return
+      await syncOrders()
 
-    const now = new Date().toISOString()
-    const updates: Record<string, string> = { status: newStatus }
-    if (newStatus === "making") updates.accepted_at = now
-    if (newStatus === "ready") updates.ready_at = now
-    if (newStatus === "done") updates.completed_at = now
-
-    await supabaseRef.current.from("orders").update(updates).eq("id", orderId)
-
-    if (newStatus === "ready") {
-      showToast("Customer notified — order is ready!")
+      if (newStatus === "ready") {
+        showToast("Customer notified - order is ready!")
+      }
+    } catch (error) {
+      setConnectionStatus("error")
+      setConnectionError(error instanceof Error ? error.message : "Unable to update order.")
     }
   }
 
-  // Handle config connection
-  const handleConnect = (url: string, key: string, businessId: string) => {
-    localStorage.setItem("kds_url", url)
-    localStorage.setItem("kds_key", key)
-    localStorage.setItem("kds_biz", businessId)
-    setConfig({ url, key, businessId })
-    setShowConfig(false)
-  }
-
-  // Filter orders by status
-  const pendingOrders = orders.filter((o) => o.status === "pending")
-  const makingOrders = orders.filter((o) => o.status === "making")
-  const readyOrders = orders.filter((o) => o.status === "ready")
+  const pendingOrders = orders.filter((order) => order.status === "pending")
+  const makingOrders = orders.filter((order) => order.status === "making")
+  const readyOrders = orders.filter((order) => order.status === "ready")
 
   return (
     <div className="min-h-screen bg-background">
-      {showConfig && (
-        <ConfigDialog
-          onConnect={handleConnect}
-          onDemo={() => setDemoMode(true)}
-        />
-      )}
+      {showConfig && <ConfigDialog onDemo={() => setDemoMode(true)} issues={healthIssuesRef.current} />}
 
-      <Header 
-        orderCount={orders.length} 
+      <Header
+        orderCount={orders.length}
         connectionStatus={connectionStatus}
         connectionError={connectionError}
-        onRefresh={config ? handleRefresh : undefined}
+        onRefresh={!showConfig || demoMode ? handleRefresh : undefined}
         isRefreshing={isRefreshing}
       />
 
       <main className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <OrderColumn
             title="New"
             status="pending"

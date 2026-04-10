@@ -20,6 +20,15 @@ interface HeaderProps {
   isRefreshing?: boolean
 }
 
+interface ConnectionConfig {
+  color: string
+  icon: typeof Wifi
+  label: string
+  description: string
+  animate?: boolean
+  glow?: boolean
+}
+
 function Clock() {
   const [time, setTime] = useState<string | null>(null)
 
@@ -48,7 +57,7 @@ function Clock() {
 }
 
 function ConnectionIndicator({ status, error }: { status: ConnectionStatus; error?: string | null }) {
-  const statusConfig = {
+  const statusConfig: Record<ConnectionStatus, ConnectionConfig> = {
     disconnected: {
       color: "bg-muted-foreground",
       icon: WifiOff,
