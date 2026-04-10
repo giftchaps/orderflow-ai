@@ -1,11 +1,21 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Phone, Wifi } from "lucide-react"
+import { Phone, Wifi, WifiOff, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error"
 
 interface HeaderProps {
   orderCount: number
+  connectionStatus: ConnectionStatus
+  connectionError?: string | null
 }
 
 function Clock() {
@@ -35,7 +45,64 @@ function Clock() {
   )
 }
 
-export function Header({ orderCount }: HeaderProps) {
+function ConnectionIndicator({ status, error }: { status: ConnectionStatus; error?: string | null }) {
+  const statusConfig = {
+    disconnected: {
+      color: "bg-muted-foreground",
+      icon: WifiOff,
+      label: "Disconnected",
+      description: "Not connected to database",
+    },
+    connecting: {
+      color: "bg-[oklch(0.8_0.16_85)]",
+      icon: Wifi,
+      label: "Connecting",
+      description: "Establishing connection...",
+      animate: true,
+    },
+    connected: {
+      color: "bg-[oklch(0.65_0.18_145)]",
+      icon: Wifi,
+      label: "Connected",
+      description: "Real-time sync active",
+      glow: true,
+    },
+    error: {
+      color: "bg-destructive",
+      icon: AlertCircle,
+      label: "Connection Error",
+      description: error || "Failed to connect to database",
+    },
+  }
+
+  const config = statusConfig[status]
+  const Icon = config.icon
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-2 cursor-help">
+            <div 
+              className={`h-2.5 w-2.5 rounded-full ${config.color} ${
+                config.glow ? "animate-pulse-slow shadow-[0_0_8px_oklch(0.65_0.18_145)]" : ""
+              } ${config.animate ? "animate-pulse" : ""}`} 
+            />
+            <Icon className={`h-4 w-4 ${status === "connected" ? "text-[oklch(0.65_0.18_145)]" : status === "error" ? "text-destructive" : "text-muted-foreground"}`} />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="bg-card border-border">
+          <div className="text-sm">
+            <p className="font-medium">{config.label}</p>
+            <p className="text-muted-foreground text-xs">{config.description}</p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+export function Header({ orderCount, connectionStatus, connectionError }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-b border-border">
       <div className="flex items-center justify-between px-6 py-4">
@@ -61,10 +128,7 @@ export function Header({ orderCount }: HeaderProps) {
           
           <Clock />
           
-          <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-[oklch(0.65_0.18_145)] animate-pulse-slow shadow-[0_0_8px_oklch(0.65_0.18_145)]" />
-            <Wifi className="h-4 w-4 text-muted-foreground" />
-          </div>
+          <ConnectionIndicator status={connectionStatus} error={connectionError} />
         </div>
       </div>
     </header>
