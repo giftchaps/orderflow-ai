@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Phone, Wifi, WifiOff, AlertCircle } from "lucide-react"
+import { Phone, Wifi, WifiOff, AlertCircle, RefreshCw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -16,6 +16,8 @@ interface HeaderProps {
   orderCount: number
   connectionStatus: ConnectionStatus
   connectionError?: string | null
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
 function Clock() {
@@ -102,7 +104,7 @@ function ConnectionIndicator({ status, error }: { status: ConnectionStatus; erro
   )
 }
 
-export function Header({ orderCount, connectionStatus, connectionError }: HeaderProps) {
+export function Header({ orderCount, connectionStatus, connectionError, onRefresh, isRefreshing }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-b border-border">
       <div className="flex items-center justify-between px-6 py-4">
@@ -127,6 +129,25 @@ export function Header({ orderCount, connectionStatus, connectionError }: Header
           </Badge>
           
           <Clock />
+          
+          {onRefresh && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onRefresh}
+                    disabled={isRefreshing}
+                    className="p-2 rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 text-muted-foreground ${isRefreshing ? "animate-spin" : ""}`} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-card border-border">
+                  <p className="text-sm">Refresh orders</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           
           <ConnectionIndicator status={connectionStatus} error={connectionError} />
         </div>
