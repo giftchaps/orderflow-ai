@@ -9,16 +9,28 @@ interface HeaderProps {
 }
 
 function Clock() {
-  const [time, setTime] = useState(new Date())
+  const [time, setTime] = useState<string | null>(null)
 
   useEffect(() => {
-    const interval = setInterval(() => setTime(new Date()), 1000)
+    const updateTime = () => {
+      setTime(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }))
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
     return () => clearInterval(interval)
   }, [])
 
+  if (!time) {
+    return (
+      <div className="text-2xl font-mono font-bold tabular-nums tracking-tight">
+        --:-- --
+      </div>
+    )
+  }
+
   return (
     <div className="text-2xl font-mono font-bold tabular-nums tracking-tight">
-      {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+      {time}
     </div>
   )
 }
