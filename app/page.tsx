@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { createClient, SupabaseClient } from "@supabase/supabase-js"
-import { Header } from "@/components/kds/header"
+import { Header, ConnectionStatus } from "@/components/kds/header"
 import { OrderColumn } from "@/components/kds/order-column"
 import { ConfigDialog } from "@/components/kds/config-dialog"
 import { OrderToast } from "@/components/kds/order-toast"
@@ -115,7 +115,11 @@ export default function KitchenDisplay() {
   const [config, setConfig] = useState<Config | null>(null)
   const [demoMode, setDemoMode] = useState(false)
   const [showConfig, setShowConfig] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected")
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const supabaseRef = useRef<SupabaseClient | null>(null)
+  const configRef = useRef<Config | null>(null)
 
   // Check for saved config on mount
   useEffect(() => {
@@ -134,27 +138,62 @@ export default function KitchenDisplay() {
     setTimeout(() => setToast(null), 3000)
   }, [])
 
+  // Fetch orders function (reusable for refresh)
+  const fetchOrders = useCallback(async (supabase: SupabaseClient, businessId: string) => {
+    try {
+      console.log("[v0] Fetching orders for business:", businessId)
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("business_id", businessId)
+        .in("status", ["pending", "making", "ready"])
+        .order("placed_at", { ascending: true })
+
+      if (error) {
+        console.error("[v0] Supabase fetch error:", error)
+        setConnectionStatus("error")
+        setConnectionError(error.message)
+        return
+      }
+
+      console.log("[v0] Orders fetched:", data?.length || 0, "orders")
+      if (data && data.length > 0) {
+        console.log("[v0] First order:", JSON.stringify(data[0], null, 2))
+      }
+      setOrders(data as Order[])
+      setConnectionStatus("connected")
+      setConnectionError(null)
+    } catch (err) {
+      console.error("[v0] Connection error:", err)
+      setConnectionStatus("error")
+      setConnectionError(err instanceof Error ? err.message : "Failed to connect")
+    }
+  }, [])
+
+  // Manual refresh handler
+  const handleRefresh = useCallback(async () => {
+    if (!supabaseRef.current || !configRef.current) return
+    setIsRefreshing(true)
+    await fetchOrders(supabaseRef.current, configRef.current.businessId)
+    setIsRefreshing(false)
+  }, [fetchOrders])
+
   // Connect to Supabase
   useEffect(() => {
-    if (!config) return
+    if (!config) {
+      setConnectionStatus("disconnected")
+      return
+    }
+
+    setConnectionStatus("connecting")
+    setConnectionError(null)
+    configRef.current = config
 
     const supabase = createClient(config.url, config.key)
     supabaseRef.current = supabase
 
-    // Initial fetch
-    const fetchOrders = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("business_id", config.businessId)
-        .in("status", ["pending", "making", "ready"])
-        .order("placed_at", { ascending: true })
-
-      if (data) {
-        setOrders(data as Order[])
-      }
-    }
-    fetchOrders()
+    // Initial fetch with connection validation
+    fetchOrders(supabase, config.businessId)
 
     // Real-time subscription
     const channel = supabase
@@ -198,7 +237,14 @@ export default function KitchenDisplay() {
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setConnectionStatus("connected")
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setConnectionStatus("error")
+          setConnectionError("Real-time subscription failed")
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)
@@ -210,6 +256,8 @@ export default function KitchenDisplay() {
     if (demoMode) {
       setOrders(DEMO_ORDERS)
       setShowConfig(false)
+      setConnectionStatus("connected")
+      setConnectionError(null)
     }
   }, [demoMode])
 
@@ -268,7 +316,13 @@ export default function KitchenDisplay() {
         />
       )}
 
-      <Header orderCount={orders.length} />
+      <Header 
+        orderCount={orders.length} 
+        connectionStatus={connectionStatus}
+        connectionError={connectionError}
+        onRefresh={config ? handleRefresh : undefined}
+        isRefreshing={isRefreshing}
+      />
 
       <main className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
