@@ -67,9 +67,18 @@ async def vapi_webhook(request: Request):
     logger.info("MESSAGE KEYS: %s", list(message.keys()) if isinstance(message, dict) else message)
     logger.info("EVENT TYPE: %s", event_type)
 
-    if event_type != "end-of-call-report":
+    # Vapi fires end-of-call-report OR status-update with status=ended
+    is_end_of_call = event_type == "end-of-call-report"
+    is_status_ended = (
+        event_type == "status-update"
+        and message.get("status") == "ended"
+    )
+
+    if not is_end_of_call and not is_status_ended:
         logger.info("Ignoring event type: %s", event_type)
         return {"status": "ok"}
+
+    logger.info("Processing call end event — type: %s", event_type)
 
     # Extract customer phone — Vapi puts it at message.customer.number OR message.call.customer.number
     customer_phone = (
