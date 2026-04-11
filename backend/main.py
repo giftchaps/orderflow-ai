@@ -23,11 +23,12 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 EXTRACTION_PROMPT = """You are an order extraction system for Provenzano's Deli.
-Extract the food order from this transcript.
-Return ONLY a valid JSON array, no other text.
-Format: [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
+Extract the food order from this transcript and return a JSON object.
+Return a JSON object with an "items" array.
+Format: {{"items": [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
 "mods": [{{"type": "add", "item": "extra cheese"}},
-         {{"type": "remove", "item": "cherry peppers"}}]}}]
+         {{"type": "remove", "item": "cherry peppers"}}]}}]}}
+If no order was placed, return {{"items": []}}.
 Transcript: {transcript}"""
 
 
@@ -42,9 +43,16 @@ def extract_order_items(transcript: str) -> list:
                 }
             ],
             temperature=0,
+            response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content.strip()
-        items = json.loads(raw)
+        logger.info("GPT-4o raw response: %s", raw[:300])
+        parsed = json.loads(raw)
+        # GPT may return {"items": [...]} or just [...]
+        if isinstance(parsed, list):
+            items = parsed
+        else:
+            items = parsed.get("items", parsed.get("order", []))
         logger.info("Extracted %d order item(s)", len(items))
         return items
     except Exception as e:
