@@ -98,17 +98,38 @@ function getChannelLabel(channel: Order["channel"]): string {
 function playAlert() {
   try {
     const ctx = new AudioContext()
-    ;[0, 150, 300].forEach((delay) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = 880
-      gain.gain.setValueAtTime(0.4, ctx.currentTime + delay / 1000)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay / 1000 + 0.3)
-      osc.start(ctx.currentTime + delay / 1000)
-      osc.stop(ctx.currentTime + delay / 1000 + 0.3)
-    })
+
+    const playDing = (startTime: number) => {
+      // Primary tone — warm bell-like fundamental
+      const osc1 = ctx.createOscillator()
+      const gain1 = ctx.createGain()
+      osc1.type = "sine"
+      osc1.frequency.value = 660
+      gain1.gain.setValueAtTime(0, startTime)
+      gain1.gain.linearRampToValueAtTime(0.6, startTime + 0.01)
+      gain1.gain.exponentialRampToValueAtTime(0.001, startTime + 1.2)
+      osc1.connect(gain1)
+      gain1.connect(ctx.destination)
+      osc1.start(startTime)
+      osc1.stop(startTime + 1.2)
+
+      // Harmonic overtone — adds richness
+      const osc2 = ctx.createOscillator()
+      const gain2 = ctx.createGain()
+      osc2.type = "sine"
+      osc2.frequency.value = 1320
+      gain2.gain.setValueAtTime(0, startTime)
+      gain2.gain.linearRampToValueAtTime(0.25, startTime + 0.01)
+      gain2.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6)
+      osc2.connect(gain2)
+      gain2.connect(ctx.destination)
+      osc2.start(startTime)
+      osc2.stop(startTime + 0.6)
+    }
+
+    // Two dings — spaced 0.6s apart
+    playDing(ctx.currentTime)
+    playDing(ctx.currentTime + 0.65)
   } catch {
     // Audio context is not always available.
   }
