@@ -28,7 +28,12 @@ Return a JSON object with an "items" array.
 Format: {{"items": [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
 "mods": [{{"type": "add", "item": "extra cheese"}},
          {{"type": "remove", "item": "cherry peppers"}}]}}]}}
-If no order was placed, return {{"items": []}}.
+Rules:
+- qty is the number of that item ordered (default 1)
+- bread must be one of: "Hard Roll", "6 inch", "12 inch", "White Wrap", "Wheat Wrap", "Spinach Wrap", "Wrap"
+- Normalize spoken bread sizes: "twelve inch" -> "12 inch", "six inch" -> "6 inch"
+- mods type must be "add" or "remove"
+- If no order was placed, return {{"items": []}}
 Transcript: {transcript}"""
 
 
