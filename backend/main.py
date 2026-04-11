@@ -62,6 +62,11 @@ async def vapi_webhook(request: Request):
     message = body.get("message", {})
     event_type = message.get("type")
 
+    # Log full payload structure for debugging (keys only to avoid noise)
+    logger.info("PAYLOAD TOP-LEVEL KEYS: %s", list(body.keys()))
+    logger.info("MESSAGE KEYS: %s", list(message.keys()) if isinstance(message, dict) else message)
+    logger.info("EVENT TYPE: %s", event_type)
+
     if event_type != "end-of-call-report":
         logger.info("Ignoring event type: %s", event_type)
         return {"status": "ok"}
@@ -73,8 +78,15 @@ async def vapi_webhook(request: Request):
         .get("number", "unknown")
     )
 
-    # Extract transcript
-    transcript = message.get("artifact", {}).get("transcript", "")
+    # Vapi may send transcript at message.artifact.transcript or message.transcript
+    artifact = message.get("artifact", {})
+    transcript = (
+        artifact.get("transcript")
+        or message.get("transcript")
+        or ""
+    )
+    logger.info("ARTIFACT KEYS: %s", list(artifact.keys()) if isinstance(artifact, dict) else artifact)
+    logger.info("TRANSCRIPT (first 200 chars): %s", transcript[:200] if transcript else "EMPTY")
 
     if not transcript:
         logger.warning("Empty transcript received — skipping order extraction")
