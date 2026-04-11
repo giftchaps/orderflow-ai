@@ -71,22 +71,25 @@ async def vapi_webhook(request: Request):
         logger.info("Ignoring event type: %s", event_type)
         return {"status": "ok"}
 
-    # Extract customer phone
+    # Extract customer phone — Vapi puts it at message.customer.number OR message.call.customer.number
     customer_phone = (
-        message.get("call", {})
-        .get("customer", {})
-        .get("number", "unknown")
+        message.get("customer", {}).get("number")
+        or message.get("call", {}).get("customer", {}).get("number")
+        or "unknown"
     )
 
-    # Vapi may send transcript at message.artifact.transcript or message.transcript
+    # Log artifact structure so we can see exactly where the transcript lives
     artifact = message.get("artifact", {})
+    logger.info("ARTIFACT KEYS: %s", list(artifact.keys()) if isinstance(artifact, dict) else artifact)
+    logger.info("ARTIFACT FULL: %s", str(artifact)[:500])
+
+    # Vapi may send transcript at message.artifact.transcript or message.transcript
     transcript = (
         artifact.get("transcript")
         or message.get("transcript")
         or ""
     )
-    logger.info("ARTIFACT KEYS: %s", list(artifact.keys()) if isinstance(artifact, dict) else artifact)
-    logger.info("TRANSCRIPT (first 200 chars): %s", transcript[:200] if transcript else "EMPTY")
+    logger.info("TRANSCRIPT (first 300 chars): %s", transcript[:300] if transcript else "EMPTY")
 
     if not transcript:
         logger.warning("Empty transcript received — skipping order extraction")
