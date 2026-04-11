@@ -9,6 +9,9 @@ next.user-config.*
 
 # Environment variables
 .env*.local
+backend/.env
+backend/__pycache__/
+backend/test_payload.json
 
 # Common ignores
 node_modules
