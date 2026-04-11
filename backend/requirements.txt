@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+supabase==2.22.4
+openai
+python-dotenv
