@@ -9,6 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login")
   }
 
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar variant="admin" />

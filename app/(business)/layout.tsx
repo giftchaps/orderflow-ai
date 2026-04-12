@@ -8,6 +8,7 @@ export default async function BusinessLayout({ children }: { children: React.Rea
 
   if (!role) redirect("/login")
   if (role.is_super_admin) redirect("/admin/dashboard")
+
   if (!role.business_id) redirect("/login")
 
   const supabase = createSupabaseServerClient()
