@@ -22,19 +22,54 @@ BUSINESS_ID = os.environ["ORDERFLOW_BUSINESS_ID"].removeprefix("ID:")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
-EXTRACTION_PROMPT = """You are an order extraction system for Provenzano's Deli.
+EXTRACTION_PROMPT = """You are an order extraction system for Provenzano's Deli in West Haven, CT.
 Extract the food order from this transcript and return a JSON object.
 Return a JSON object with an "items" array.
 Format: {{"items": [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
 "mods": [{{"type": "add", "item": "extra cheese"}},
          {{"type": "remove", "item": "cherry peppers"}}]}}]}}
-Rules:
+
+BREAD OPTIONS (use exactly these values):
+- "Hard Roll"
+- "6-inch Sub"
+- "12-inch Sub"
+- "Plain Wrap" (use for: plain wrap, regular wrap, white wrap, or just "wrap" with no type specified)
+- "Spinach Wrap"
+- "Whole Wheat Wrap" (use for: wheat wrap, whole wheat, whole wheat wrap)
+- Normalize spoken sizes: "six inch" -> "6-inch Sub", "twelve inch" -> "12-inch Sub"
+
+MENU ITEMS — always use the canonical name on the left, never the alias:
+Cold Deli: Buffalo Chicken Salad, Capicola Chicken Salad, Chicken Salad, Corned Beef, Ham, DiLussi Salami, Turkey, Pepperoni, Sopressata Hot, Sopressata Sweet, Tuna Salad
+Hot Deli: Chicken Cutlet, Buffalo Chicken Cutlet, Grilled Chicken, Grilled Buffalo Chicken, Grilled Cheese, BLT
+Combos: Chicken Parmesan, Eggplant Parmesan, Meatball Parmesan, Home-Cooked Roast Beef, Pastrami, Prosciutto, Steak, Sweet Italian Combo, Hot Italian Combo, The Deluxe
+Premium: Alaina Marie, Cousin Vinny, Kerbear, Murph Man, The Parm, Provy, Rudenzano, Michelangelo, Rabe Thompson, Sinatra, Sausage and Peppers, Wes
+Signature: Ainsley Joyce, De Niro, Donatello, Galileo, Leonardo, Inferno, Nana, The Pop, Raphael, Tuna Bomb
+Salads (no bread): Balsamic Salad, Caesar Salad, Nana Salad, Greek Salad, Mixed Greens and Tuna Salad, De Niro Salad
+Breakfast: Breakfast on a Roll, Double Breakfast on a Roll, Italian Bomber, Breakfast Provy, Double Egg Sandwich, 4 Eggs on a Sub, Assorted Muffins, Buttered Roll, Bagel, Bagel with Cream Cheese, Side Homefries (Small), Side Homefries (Large)
+
+ALIAS EXAMPLES:
+- "chicken parm" -> "Chicken Parmesan"
+- "meatball parm" or "meatball sub" -> "Meatball Parmesan"
+- "eggplant parm" -> "Eggplant Parmesan"
+- "provy" or "provi" -> "Provy"
+- "tuna bomb" or "tunabomb" -> "Tuna Bomb"
+- "michelangelo" or "mike" or "mikey" -> "Michelangelo"
+- "roast beef" -> "Home-Cooked Roast Beef"
+- "hot italian" -> "Hot Italian Combo"
+- "sweet italian" -> "Sweet Italian Combo"
+- "buff chicken cutlet" or "buffalo cutlet" -> "Buffalo Chicken Cutlet"
+- "greek salad" or "greek" -> "Greek Salad"
+- "caesar" -> "Caesar Salad"
+- "bomber" -> "Italian Bomber"
+- "breakfast provy" -> "Breakfast Provy"
+
+RULES:
 - qty is the number of that item ordered (default 1)
-- bread must be one of: "Hard Roll", "6 inch", "12 inch", "Plain Wrap", "Spinach Wrap", "Whole Wheat Wrap"
-- Normalize spoken bread sizes: "twelve inch" -> "12 inch", "six inch" -> "6 inch"
-- Normalize wrap types: "plain wrap" or "regular wrap" or "white wrap" or just "wrap" -> "Plain Wrap", "spinach wrap" -> "Spinach Wrap", "wheat wrap" or "whole wheat wrap" -> "Whole Wheat Wrap"
+- Salads do not have a bread field — omit it or set to null
 - mods type must be "add" or "remove"
-- If no order was placed, return {{"items": []}}
+- mods should capture additions, removals, substitutions, and dressing choices
+- If no food order was placed, return {{"items": []}}
+
 Transcript: {transcript}"""
 
 
