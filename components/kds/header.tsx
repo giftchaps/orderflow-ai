@@ -114,6 +114,15 @@ function ConnectionIndicator({ status, error }: { status: ConnectionStatus; erro
 }
 
 export function Header({ orderCount, connectionStatus, connectionError, onRefresh, isRefreshing }: HeaderProps) {
+  const [businessName, setBusinessName] = useState<string>("Kitchen Display")
+
+  useEffect(() => {
+    fetch("/api/business")
+      .then((r) => r.json())
+      .then((data) => { if (data.name) setBusinessName(data.name) })
+      .catch(() => {})
+  }, [])
+
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-b border-border">
       <div className="flex items-center justify-between px-6 py-4">
@@ -123,7 +132,7 @@ export function Header({ orderCount, connectionStatus, connectionError, onRefres
               <Phone className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Provenzano&apos;s</h1>
+              <h1 className="text-lg font-bold tracking-tight">{businessName}</h1>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">Kitchen Display</p>
             </div>
           </div>

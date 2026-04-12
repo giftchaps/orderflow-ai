@@ -20,6 +20,8 @@ const serverEnvSchema = z.object({
     normalizeBusinessId,
     z.string().uuid("ORDERFLOW_BUSINESS_ID must be a valid UUID")
   ),
+  ORDERFLOW_BUSINESS_NAME: z.string().min(1).default("My Restaurant"),
+  ORDERFLOW_BUSINESS_PHONE: z.string().optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
@@ -35,6 +37,8 @@ export function getServerEnv(): ServerEnv {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     ORDERFLOW_BUSINESS_ID: process.env.ORDERFLOW_BUSINESS_ID,
+    ORDERFLOW_BUSINESS_NAME: process.env.ORDERFLOW_BUSINESS_NAME,
+    ORDERFLOW_BUSINESS_PHONE: process.env.ORDERFLOW_BUSINESS_PHONE,
   })
 
   return cachedEnv
@@ -45,6 +49,8 @@ export function getServerEnvIssues(): string[] {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     ORDERFLOW_BUSINESS_ID: process.env.ORDERFLOW_BUSINESS_ID,
+    ORDERFLOW_BUSINESS_NAME: process.env.ORDERFLOW_BUSINESS_NAME,
+    ORDERFLOW_BUSINESS_PHONE: process.env.ORDERFLOW_BUSINESS_PHONE,
   })
 
   if (parsed.success) {

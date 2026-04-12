@@ -21,6 +21,8 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 BUSINESS_ID = os.environ["ORDERFLOW_BUSINESS_ID"].removeprefix("ID:")
 TELNYX_API_KEY = os.environ["TELNYX_API_KEY"]
 TELNYX_FROM_NUMBER = os.environ["TELNYX_FROM_NUMBER"]
+BUSINESS_NAME = os.environ.get("ORDERFLOW_BUSINESS_NAME", "the restaurant")
+BUSINESS_PHONE = os.environ.get("ORDERFLOW_BUSINESS_PHONE", "")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
@@ -49,7 +51,7 @@ def send_sms(to: str, message: str) -> None:
     except Exception as e:
         logger.error("SMS send error: %s", e)
 
-EXTRACTION_PROMPT = """You are an order extraction system for Provenzano's Deli in West Haven, CT.
+EXTRACTION_PROMPT = """You are an order extraction system for {business_name}.
 Extract the food order from this transcript and return a JSON object.
 Return a JSON object with an "items" array.
 Format: {{"items": [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
@@ -107,7 +109,10 @@ def extract_order_items(transcript: str) -> list:
             messages=[
                 {
                     "role": "user",
-                    "content": EXTRACTION_PROMPT.format(transcript=transcript),
+                    "content": EXTRACTION_PROMPT.format(
+                        business_name=BUSINESS_NAME,
+                        transcript=transcript,
+                    ),
                 }
             ],
             temperature=0,
@@ -199,12 +204,12 @@ async def vapi_webhook(request: Request):
             order_number = order.get("order_number", "")
             item_count = len(items)
             item_summary = f"{item_count} item{'s' if item_count != 1 else ''}"
+            contact = f" Questions? Call {BUSINESS_PHONE}." if BUSINESS_PHONE else ""
             send_sms(
                 to=customer_phone,
                 message=(
-                    f"Hi! Your order #{order_number} has been received at Provenzano's Deli "
-                    f"({item_summary}). We'll text you when it's ready. "
-                    f"Questions? Call (203) 937-7827."
+                    f"Hi! Your order #{order_number} has been received at {BUSINESS_NAME} "
+                    f"({item_summary}). We'll text you when it's ready.{contact}"
                 ),
             )
     else:

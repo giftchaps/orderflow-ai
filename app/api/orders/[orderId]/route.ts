@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic"
 async function sendReadySms(to: string, orderNumber: number) {
   const apiKey = process.env.TELNYX_API_KEY
   const fromNumber = process.env.TELNYX_FROM_NUMBER
+  const businessName = process.env.ORDERFLOW_BUSINESS_NAME ?? "the restaurant"
   if (!apiKey || !fromNumber) return
 
   try {
@@ -21,7 +22,7 @@ async function sendReadySms(to: string, orderNumber: number) {
       body: JSON.stringify({
         from: fromNumber,
         to,
-        text: `Your order #${orderNumber} is ready for pickup at Provenzano's Deli! See you soon.`,
+        text: `Your order #${orderNumber} is ready for pickup at ${businessName}! See you soon.`,
       }),
     })
   } catch {
