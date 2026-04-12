@@ -84,37 +84,53 @@ ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE businesses_staff ENABLE ROW LEVEL SECURITY;
 
 -- Staff can read their own business
-CREATE POLICY IF NOT EXISTS "staff_read_own_business"
-  ON businesses FOR SELECT
-  USING (
-    id IN (
-      SELECT business_id FROM businesses_staff
-      WHERE user_id = auth.uid()
-    )
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'staff_read_own_business' AND tablename = 'businesses') THEN
+    CREATE POLICY "staff_read_own_business"
+      ON businesses FOR SELECT
+      USING (
+        id IN (
+          SELECT business_id FROM businesses_staff
+          WHERE user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Staff can update their own business (name, address, prep_time, menu)
-CREATE POLICY IF NOT EXISTS "staff_update_own_business"
-  ON businesses FOR UPDATE
-  USING (
-    id IN (
-      SELECT business_id FROM businesses_staff
-      WHERE user_id = auth.uid()
-        AND role IN ('owner', 'manager')
-    )
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'staff_update_own_business' AND tablename = 'businesses') THEN
+    CREATE POLICY "staff_update_own_business"
+      ON businesses FOR UPDATE
+      USING (
+        id IN (
+          SELECT business_id FROM businesses_staff
+          WHERE user_id = auth.uid()
+            AND role IN ('owner', 'manager')
+        )
+      );
+  END IF;
+END $$;
 
 -- Staff can read all staff in their own business
-CREATE POLICY IF NOT EXISTS "staff_read_own_business_staff"
-  ON businesses_staff FOR SELECT
-  USING (
-    business_id IN (
-      SELECT business_id FROM businesses_staff
-      WHERE user_id = auth.uid()
-    )
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'staff_read_own_business_staff' AND tablename = 'businesses_staff') THEN
+    CREATE POLICY "staff_read_own_business_staff"
+      ON businesses_staff FOR SELECT
+      USING (
+        business_id IN (
+          SELECT business_id FROM businesses_staff
+          WHERE user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- Staff can update their own row (e.g. set their name after invite)
-CREATE POLICY IF NOT EXISTS "staff_update_own_row"
-  ON businesses_staff FOR UPDATE
-  USING (user_id = auth.uid());
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'staff_update_own_row' AND tablename = 'businesses_staff') THEN
+    CREATE POLICY "staff_update_own_row"
+      ON businesses_staff FOR UPDATE
+      USING (user_id = auth.uid());
+  END IF;
+END $$;
