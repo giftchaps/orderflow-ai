@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
+import { normalizeEmail } from "@/lib/auth/normalize-email"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export async function POST(req: NextRequest) {
   try {
     const { email, role, business_id } = await req.json()
-    if (!email || !role || !business_id) {
+    const normalizedEmail = normalizeEmail(email)
+
+    if (!normalizedEmail || !role || !business_id) {
       return NextResponse.json({ error: "email, role, and business_id are required" }, { status: 400 })
     }
 
@@ -19,8 +22,8 @@ export async function POST(req: NextRequest) {
       .from("businesses_staff")
       .select("id")
       .eq("business_id", business_id)
-      .eq("email", email)
-      .single()
+      .ilike("email", normalizedEmail)
+      .maybeSingle()
 
     if (existing) {
       return NextResponse.json({ message: "This email is already a staff member" }, { status: 409 })
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Create pending staff record
     const { error: staffErr } = await supabase.from("businesses_staff").insert({
       business_id,
-      email,
+      email: normalizedEmail,
       role,
       is_super_admin: false,
     })
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     // Send invite email
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-    const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(email, {
+    const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail, {
       redirectTo: `${appUrl}/invite`,
       data: { business_id, role },
     })
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Staff record created but invite email failed: " + inviteErr.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, message: `Invite sent to ${email}` })
+    return NextResponse.json({ ok: true, message: `Invite sent to ${normalizedEmail}` })
   } catch (err: any) {
     console.error("[invite-staff]", err)
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 })

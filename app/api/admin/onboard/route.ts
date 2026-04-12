@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { normalizeEmail } from "@/lib/auth/normalize-email"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { name, slug, address, timezone, prep_time_minutes, owner_name, owner_email, plan, menu } = body
+    const normalizedOwnerEmail = normalizeEmail(owner_email)
 
-    if (!name || !slug || !owner_email) {
+    if (!name || !slug || !normalizedOwnerEmail) {
       return NextResponse.json({ error: "name, slug, and owner_email are required" }, { status: 400 })
     }
 
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
         timezone: timezone ?? "America/New_York",
         prep_time_minutes: prep_time_minutes ?? 15,
         plan: plan ?? "starter",
-        owner_email,
+        owner_email: normalizedOwnerEmail,
         menu: menu ?? null,
       })
       .select("id")
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
     // Create staff record for owner (no user_id yet — pending invite)
     const { error: staffErr } = await supabase.from("businesses_staff").insert({
       business_id: biz.id,
-      email: owner_email,
+      email: normalizedOwnerEmail,
       name: owner_name ?? null,
       role: "owner",
       is_super_admin: false,
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // Send invite email via Supabase Auth
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-    const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(owner_email, {
+    const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(normalizedOwnerEmail, {
       redirectTo: `${appUrl}/invite`,
       data: { business_id: biz.id, role: "owner", name: owner_name ?? "" },
     })

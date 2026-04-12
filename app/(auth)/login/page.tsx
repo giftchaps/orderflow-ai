@@ -42,7 +42,10 @@ export default function LoginPage() {
     const staff = await res.json()
 
     if (!res.ok) {
-      setError(staff.error ?? "No staff record found. Contact your administrator.")
+      setError(
+        staff.error ??
+          "We could not match this account to a staff record. Ask your administrator to invite this email address."
+      )
       setLoading(false)
       setStep(null)
       return
