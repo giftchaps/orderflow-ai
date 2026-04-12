@@ -30,10 +30,9 @@ Format: {{"items": [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
          {{"type": "remove", "item": "cherry peppers"}}]}}]}}
 Rules:
 - qty is the number of that item ordered (default 1)
-- bread must be one of: "Hard Roll", "6 inch", "12 inch", "White Wrap", "Wheat Wrap", "Spinach Wrap", "Wrap"
+- bread must be one of: "Hard Roll", "6 inch", "12 inch", "Plain Wrap", "Spinach Wrap", "Whole Wheat Wrap"
 - Normalize spoken bread sizes: "twelve inch" -> "12 inch", "six inch" -> "6 inch"
-- Normalize wrap types: "plain wrap" -> "White Wrap", "regular wrap" -> "White Wrap", "white wrap" -> "White Wrap", "wheat wrap" -> "Wheat Wrap", "spinach wrap" -> "Spinach Wrap"
-- Only use "Wrap" if the customer says "wrap" with no qualifier at all and the type is completely unknown
+- Normalize wrap types: "plain wrap" or "regular wrap" or "white wrap" or just "wrap" -> "Plain Wrap", "spinach wrap" -> "Spinach Wrap", "wheat wrap" or "whole wheat wrap" -> "Whole Wheat Wrap"
 - mods type must be "add" or "remove"
 - If no order was placed, return {{"items": []}}
 Transcript: {transcript}"""
