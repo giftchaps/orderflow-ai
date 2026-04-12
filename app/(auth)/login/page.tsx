@@ -37,45 +37,12 @@ export default function LoginPage() {
 
     setStep("Loading your account...")
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setError("Authentication failed — could not get user session.")
-      setLoading(false)
-      setStep(null)
-      return
-    }
+    // Use server API route to bypass RLS and look up staff record
+    const res = await fetch("/api/auth/me")
+    const staff = await res.json()
 
-    // Try by user_id first, fall back to email (handles case where user_id not yet linked)
-    let staff: any = null
-
-    const { data: byUserId } = await supabase
-      .from("businesses_staff")
-      .select("role, business_id, is_super_admin, user_id, email")
-      .eq("user_id", user.id)
-      .single()
-
-    if (byUserId) {
-      staff = byUserId
-    } else {
-      setStep("Linking your account...")
-      const { data: byEmail } = await supabase
-        .from("businesses_staff")
-        .select("role, business_id, is_super_admin, user_id, email")
-        .eq("email", user.email ?? email)
-        .single()
-
-      if (byEmail) {
-        staff = byEmail
-        // Link the user_id now so future logins work
-        await supabase
-          .from("businesses_staff")
-          .update({ user_id: user.id })
-          .eq("email", user.email ?? email)
-      }
-    }
-
-    if (!staff) {
-      setError(`No staff record found for ${user.email}. Contact your administrator.`)
+    if (!res.ok) {
+      setError(staff.error ?? "No staff record found. Contact your administrator.")
       setLoading(false)
       setStep(null)
       return
