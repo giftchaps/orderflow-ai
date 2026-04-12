@@ -29,19 +29,18 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  // Use getSession for middleware — it reads from the cookie without a network call
+  const { data: { session } } = await supabase.auth.getSession()
   const { pathname } = request.nextUrl
 
   // Redirect unauthenticated users to login
-  if (!user && (pathname.startsWith("/admin") || pathname.startsWith("/business"))) {
-    return NextResponse.redirect(new URL("/login", request.url))
+  if (!session && (pathname.startsWith("/admin") || pathname.startsWith("/business"))) {
+    const loginUrl = new URL("/login", request.url)
+    return NextResponse.redirect(loginUrl)
   }
 
   // Redirect authenticated users away from login page
-  if (user && pathname === "/login") {
+  if (session && pathname === "/login") {
     return NextResponse.redirect(new URL("/business/dashboard", request.url))
   }
 
