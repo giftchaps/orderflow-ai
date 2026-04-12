@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from openai import OpenAI
@@ -18,9 +19,35 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 # Strip any "ID:" prefix that may be present in the env value
 BUSINESS_ID = os.environ["ORDERFLOW_BUSINESS_ID"].removeprefix("ID:")
+TELNYX_API_KEY = os.environ["TELNYX_API_KEY"]
+TELNYX_FROM_NUMBER = os.environ["TELNYX_FROM_NUMBER"]
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+def send_sms(to: str, message: str) -> None:
+    """Send an SMS via Telnyx. Silently logs on failure so the webhook always returns 200."""
+    try:
+        response = requests.post(
+            "https://api.telnyx.com/v2/messages",
+            headers={
+                "Authorization": f"Bearer {TELNYX_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": TELNYX_FROM_NUMBER,
+                "to": to,
+                "text": message,
+            },
+            timeout=10,
+        )
+        if response.status_code in (200, 201):
+            logger.info("SMS sent to %s", to)
+        else:
+            logger.error("Telnyx SMS failed: %s %s", response.status_code, response.text)
+    except Exception as e:
+        logger.error("SMS send error: %s", e)
 
 EXTRACTION_PROMPT = """You are an order extraction system for Provenzano's Deli in West Haven, CT.
 Extract the food order from this transcript and return a JSON object.
@@ -164,7 +191,22 @@ async def vapi_webhook(request: Request):
     result = supabase.table("orders").insert(order_data).execute()
 
     if result.data:
-        logger.info("Order saved — id: %s", result.data[0].get("id"))
+        order = result.data[0]
+        logger.info("Order saved — id: %s", order.get("id"))
+
+        # Send SMS confirmation to customer
+        if customer_phone and customer_phone != "unknown":
+            order_number = order.get("order_number", "")
+            item_count = len(items)
+            item_summary = f"{item_count} item{'s' if item_count != 1 else ''}"
+            send_sms(
+                to=customer_phone,
+                message=(
+                    f"Hi! Your order #{order_number} has been received at Provenzano's Deli "
+                    f"({item_summary}). We'll text you when it's ready. "
+                    f"Questions? Call (203) 937-7827."
+                ),
+            )
     else:
         logger.error("Supabase insert returned no data: %s", result)
 
