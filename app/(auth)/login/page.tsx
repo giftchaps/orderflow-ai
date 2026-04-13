@@ -26,7 +26,11 @@ export default function LoginPage() {
 
     const supabase = createClient()
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const normalizedEmail = email.trim().toLowerCase()
+    const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    })
 
     if (authError) {
       setError(authError.message)
@@ -38,7 +42,10 @@ export default function LoginPage() {
     setStep("Loading your account...")
 
     // Use server API route to bypass RLS and look up staff record
-    const res = await fetch("/api/auth/me")
+    const accessToken = signInData.session?.access_token
+    const res = await fetch("/api/auth/me", {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    })
     const staff = await res.json()
 
     if (!res.ok) {

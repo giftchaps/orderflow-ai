@@ -1,11 +1,18 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createAuthClient } from "@/lib/supabase/auth-server"
 import { resolveUserRole } from "@/lib/auth/resolve-user-role"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const authClient = await createAuthClient()
-    const { data: { user } } = await authClient.auth.getUser()
+    const authHeader = request.headers.get("authorization")
+    const token = authHeader?.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : undefined
+
+    const { data: { user } } = token
+      ? await authClient.auth.getUser(token)
+      : await authClient.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })

@@ -18,6 +18,19 @@ export async function GET() {
   }
 
   const env = getServerEnv()
+  const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const publicSupabaseHost = publicSupabaseUrl ? new URL(publicSupabaseUrl).host : null
+  const serverSupabaseHost = new URL(env.SUPABASE_URL).host
+  const sameSupabaseProject =
+    publicSupabaseHost !== null && publicSupabaseHost === serverSupabaseHost
+  const deploymentInfo = {
+    vercelEnv: process.env.VERCEL_ENV ?? null,
+    vercelUrl: process.env.VERCEL_URL ?? null,
+    vercelProjectProductionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
+    vercelGitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    vercelGitCommitRef: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+    nextPublicAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+  }
   const supabase = createSupabaseServerClient()
 
   const { count, error } = await supabase
@@ -30,7 +43,10 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
-        supabaseHost: new URL(env.SUPABASE_URL).host,
+        supabaseHost: serverSupabaseHost,
+        publicSupabaseHost,
+        sameSupabaseProject,
+        deploymentInfo,
         businessId: env.ORDERFLOW_BUSINESS_ID,
         message: error.message,
       },
@@ -40,7 +56,10 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    supabaseHost: new URL(env.SUPABASE_URL).host,
+    supabaseHost: serverSupabaseHost,
+    publicSupabaseHost,
+    sameSupabaseProject,
+    deploymentInfo,
     businessId: env.ORDERFLOW_BUSINESS_ID,
     matchingActiveOrders: count ?? 0,
   })
