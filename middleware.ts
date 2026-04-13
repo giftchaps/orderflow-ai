@@ -39,14 +39,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect authenticated users away from login page
-  if (session && pathname === "/login") {
-    return NextResponse.redirect(new URL("/business/dashboard", request.url))
-  }
-
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/business/:path*", "/login"],
+  matcher: ["/admin/:path*", "/business/:path*"],
 }
