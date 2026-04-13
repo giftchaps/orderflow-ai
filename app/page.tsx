@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { DemoRequestForm } from "@/components/marketing/demo-request-form"
 import { ArrowRight, CheckCircle2, Clock3, MessageSquareText, MonitorSmartphone, PhoneCall, Sparkles } from "lucide-react"
 
 const plans = [
@@ -86,7 +87,7 @@ export default function MarketingHomePage() {
                 Sign in
               </Button>
             </Link>
-            <a href="mailto:hello@orderflowai.app?subject=Request%20a%20demo">
+            <a href="#contact">
               <Button className="bg-[oklch(0.55_0.2_25)] text-white hover:bg-[oklch(0.5_0.2_25)]">
                 Request demo
               </Button>
@@ -113,7 +114,7 @@ export default function MarketingHomePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <a href="mailto:hello@orderflowai.app?subject=Request%20a%20demo">
+              <a href="#contact">
                 <Button size="lg" variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
                   Request a demo
                 </Button>
@@ -234,17 +235,25 @@ export default function MarketingHomePage() {
             <CardTitle className="text-2xl">Ready to see it on your own menu?</CardTitle>
             <p className="text-white/65">Request a demo and we’ll show how OrderFlow AI handles calls, tickets, and your kitchen workflow end to end.</p>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Link href="/login">
-              <Button className="bg-[oklch(0.55_0.2_25)] text-white hover:bg-[oklch(0.5_0.2_25)]">
-                Sign in
-              </Button>
-            </Link>
-            <a href="mailto:hello@orderflowai.app?subject=Request%20a%20demo">
-              <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
-                Request demo
-              </Button>
-            </a>
+          <CardContent className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div className="space-y-4 text-sm text-white/70">
+              <p>Tell us your business name, contact info, and what you want to automate. We’ll follow up with a live demo and next steps.</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="font-medium text-white">What happens next</p>
+                <ul className="mt-2 space-y-2 text-white/65">
+                  <li>• We review your request</li>
+                  <li>• We schedule a demo</li>
+                  <li>• We show the AI phone flow and kitchen display</li>
+                </ul>
+              </div>
+              <Link href="/login">
+                <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                  Sign in
+                </Button>
+              </Link>
+            </div>
+
+            <DemoRequestForm />
           </CardContent>
         </Card>
       </section>

@@ -30,6 +30,7 @@ This is the complete route map for the current portal and APIs.
 - GET /api/auth/me: Resolve authenticated user and role
 - GET /api/debug/config: Runtime config/deployment diagnostics
 - GET /api/health/db: Database health check
+- POST /api/demo-request: Save public demo requests from the marketing site
 
 ### Admin actions
 
