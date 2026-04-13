@@ -78,7 +78,7 @@ export default function OnboardBusinessPage() {
         body: JSON.stringify(form),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message ?? "Failed to create business")
+      if (!res.ok) throw new Error(data.error ?? data.message ?? "Failed to create business")
       router.push(`/admin/businesses/${form.slug}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")

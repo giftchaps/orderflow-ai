@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Send invite email via Supabase Auth
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
     const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(normalizedOwnerEmail, {
       redirectTo: `${appUrl}/invite`,
       data: { business_id: biz.id, role: "owner", name: owner_name ?? "" },
