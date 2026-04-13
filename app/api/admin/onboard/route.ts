@@ -77,6 +77,15 @@ export async function POST(req: NextRequest) {
 
     // Send invite email via Supabase Auth
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
+    if (process.env.VERCEL_ENV === "production" && appUrl.includes("localhost")) {
+      return NextResponse.json(
+        {
+          error:
+            "NEXT_PUBLIC_APP_URL is localhost in production. Update the Vercel env var and the Supabase Auth Site URL before sending invites.",
+        },
+        { status: 500 }
+      )
+    }
     const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(normalizedOwnerEmail, {
       redirectTo: `${appUrl}/invite`,
       data: { business_id: biz.id, role: "owner", name: owner_name ?? "" },

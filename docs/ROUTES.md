@@ -57,6 +57,12 @@ This is the complete route map for the current portal and APIs.
   - non-admin with business access -> /business/dashboard
 - /api/auth/me returns 401 when not authenticated and 403 when no staff role is found.
 
+## Invite Email Requirement
+
+- Supabase Auth Site URL must be set to your production app URL, not localhost.
+- For Vercel production, set the Supabase Auth redirect/site URL to the same domain you use for /login and /invite.
+- If this is left as localhost, invite emails can still display localhost even when the app code is correct.
+
 ## Recommended primary entry links
 
 - Admin: /admin/dashboard
