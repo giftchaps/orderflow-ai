@@ -38,3 +38,7 @@ pnpm dev
 Then open `http://localhost:3000`.
 
 If the environment is missing or invalid, the app shows a setup dialog with the exact configuration issues. You can still use demo mode without a database.
+
+## Route map
+
+For a full list of web interfaces and API endpoints, see `docs/ROUTES.md`.
