@@ -42,3 +42,7 @@ If the environment is missing or invalid, the app shows a setup dialog with the 
 ## Route map
 
 For a full list of web interfaces and API endpoints, see `docs/ROUTES.md`.
+
+## Handoff
+
+If you are continuing the project, start with `docs/HANDOFF.md` and `docs/PROJECT_STRUCTURE.md`.
