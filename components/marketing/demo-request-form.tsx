@@ -4,22 +4,20 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 
 export function DemoRequestForm() {
   const [form, setForm] = useState({
     name: "",
-    email: "",
     business_name: "",
+    email: "",
     phone: "",
-    message: "",
+    business_type: "",
   })
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
 
-  const update = (key: keyof typeof form, value: string) => {
+  const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }))
-  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -32,99 +30,110 @@ export function DemoRequestForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       })
-
       const payload = await response.json()
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to send demo request.")
-      }
-
+      if (!response.ok) throw new Error(payload.error ?? "Unable to send request.")
       setStatus("success")
-      setForm({ name: "", email: "", business_name: "", phone: "", message: "" })
-    } catch (submitError) {
+      setForm({ name: "", business_name: "", email: "", phone: "", business_type: "" })
+    } catch (err) {
       setStatus("error")
-      setError(submitError instanceof Error ? submitError.message : "Unable to send demo request.")
+      setError(err instanceof Error ? err.message : "Unable to send request.")
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="demo-name" className="text-white">Name</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="demo-name" className="text-sm text-white/70">Name</Label>
           <Input
             id="demo-name"
             value={form.name}
-            onChange={(event) => update("name", event.target.value)}
+            onChange={(e) => update("name", e.target.value)}
             placeholder="Your name"
-            className="border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            className="border-white/10 bg-black/30 text-white placeholder:text-white/30"
             required
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="demo-email" className="text-white">Email</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="demo-business" className="text-sm text-white/70">Business name</Label>
+          <Input
+            id="demo-business"
+            value={form.business_name}
+            onChange={(e) => update("business_name", e.target.value)}
+            placeholder="Provenzano's Deli"
+            className="border-white/10 bg-black/30 text-white placeholder:text-white/30"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="demo-email" className="text-sm text-white/70">Email</Label>
           <Input
             id="demo-email"
             type="email"
             value={form.email}
-            onChange={(event) => update("email", event.target.value)}
+            onChange={(e) => update("email", e.target.value)}
             placeholder="you@restaurant.com"
-            className="border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            className="border-white/10 bg-black/30 text-white placeholder:text-white/30"
             required
           />
         </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="demo-business" className="text-white">Business name</Label>
-          <Input
-            id="demo-business"
-            value={form.business_name}
-            onChange={(event) => update("business_name", event.target.value)}
-            placeholder="Provenzano's Deli"
-            className="border-white/10 bg-black/20 text-white placeholder:text-white/35"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="demo-phone" className="text-white">Phone</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="demo-phone" className="text-sm text-white/70">Phone</Label>
           <Input
             id="demo-phone"
             value={form.phone}
-            onChange={(event) => update("phone", event.target.value)}
+            onChange={(e) => update("phone", e.target.value)}
             placeholder="(203) 555-0101"
-            className="border-white/10 bg-black/20 text-white placeholder:text-white/35"
+            className="border-white/10 bg-black/30 text-white placeholder:text-white/30"
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="demo-message" className="text-white">What do you want to automate?</Label>
-        <Textarea
-          id="demo-message"
-          value={form.message}
-          onChange={(event) => update("message", event.target.value)}
-          placeholder="Tell us about your call volume, menu, and current workflow."
-          className="min-h-[120px] border-white/10 bg-black/20 text-white placeholder:text-white/35"
-        />
+      <div className="space-y-1.5">
+        <Label htmlFor="demo-type" className="text-sm text-white/70">Type of business</Label>
+        <select
+          id="demo-type"
+          value={form.business_type}
+          onChange={(e) => update("business_type", e.target.value)}
+          className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+          required
+        >
+          <option value="" disabled className="bg-[#080808]">Select your business type</option>
+          <option value="deli" className="bg-[#080808]">Deli / Sub shop</option>
+          <option value="pizza" className="bg-[#080808]">Pizza / Takeout counter</option>
+          <option value="bakery" className="bg-[#080808]">Bakery / Specialty shop</option>
+          <option value="multi" className="bg-[#080808]">Multiple locations</option>
+          <option value="other" className="bg-[#080808]">Other</option>
+        </select>
       </div>
 
-      {error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           {error}
         </div>
-      ) : null}
+      )}
 
-      {status === "success" ? (
-        <div className="rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-200">
-          Thanks. Your demo request was sent. We’ll reach out soon.
+      {status === "success" && (
+        <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">
+          Request sent. We typically respond within a few hours.
         </div>
-      ) : null}
+      )}
 
-      <Button type="submit" disabled={status === "submitting"} className="w-full bg-[oklch(0.55_0.2_25)] text-white hover:bg-[oklch(0.5_0.2_25)]">
-        {status === "submitting" ? "Sending..." : "Request a demo"}
+      <Button
+        type="submit"
+        disabled={status === "submitting"}
+        className="w-full bg-red-600 text-white hover:bg-red-700"
+      >
+        {status === "submitting" ? "Sending..." : "Request a walkthrough"}
       </Button>
+
+      <p className="text-center text-xs text-white/35">We typically respond within a few hours.</p>
     </form>
   )
 }

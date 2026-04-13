@@ -1,525 +1,446 @@
 import Link from "next/link"
-import {
-  ArrowRight,
-  BarChart3,
-  BellRing,
-  Bot,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardList,
-  Headset,
-  LayoutDashboard,
-  MessageSquareMore,
-  MonitorSmartphone,
-  PhoneCall,
-  ShieldCheck,
-  Sparkles,
-  Store,
-  TimerReset,
-  Users,
-  Workflow,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PhoneCall, CheckCircle2, ChevronRight } from "lucide-react"
 import { DemoRequestForm } from "@/components/marketing/demo-request-form"
-
-const outcomes = [
-  {
-    label: "Calls answered",
-    value: "24/7",
-    detail: "AI covers the rush, after-hours, and every missed ring in between.",
-    icon: Headset,
-  },
-  {
-    label: "Ops visibility",
-    value: "One live board",
-    detail: "Phone orders, modifiers, and prep state stay in a single workflow.",
-    icon: MonitorSmartphone,
-  },
-  {
-    label: "Staff leverage",
-    value: "Fewer interruptions",
-    detail: "Your front line spends less time repeating orders and more time producing them.",
-    icon: Users,
-  },
-]
-
-const featureColumns = [
-  {
-    eyebrow: "Front of house",
-    title: "The phone finally stops being a bottleneck.",
-    body:
-      "OrderFlow AI answers with your business name, handles menu questions, captures modifiers, and confirms the full order in a consistent tone every time.",
-    bullets: [
-      "Voice-first AI call intake",
-      "Clear capture of sandwiches, combos, breads, notes, and add-ons",
-      "Fewer missed calls during lunch and dinner rush",
-    ],
-    icon: PhoneCall,
-  },
-  {
-    eyebrow: "Kitchen flow",
-    title: "Every order becomes an actionable ticket.",
-    body:
-      "The kitchen display receives structured orders instantly so staff can accept, make, and complete tickets without digging through transcripts or sticky notes.",
-    bullets: [
-      "New, Making, Ready workflow",
-      "Customer phone and order timer visible at a glance",
-      "Designed for deli, takeout, and fast-casual teams",
-    ],
-    icon: ClipboardList,
-  },
-  {
-    eyebrow: "Business control",
-    title: "Operators get a real portal, not just a call bot.",
-    body:
-      "Menus, onboarding, staff accounts, analytics, and display links live inside one operating system so you can roll this out business by business.",
-    bullets: [
-      "Business and admin portal structure",
-      "Staff invite flow and role-based access",
-      "Multi-tenant foundation for scale",
-    ],
-    icon: LayoutDashboard,
-  },
-]
-
-const journey = [
-  {
-    title: "Answer",
-    description: "The AI agent picks up, greets the customer, and steers the conversation without scripts feeling robotic.",
-    icon: Bot,
-  },
-  {
-    title: "Structure",
-    description: "Orders are transformed into clean tickets with items, breads, notes, and customer phone details.",
-    icon: Workflow,
-  },
-  {
-    title: "Execute",
-    description: "The kitchen runs the board, updates status, and keeps service moving without repeating call details.",
-    icon: TimerReset,
-  },
-  {
-    title: "Follow through",
-    description: "The system is built to support confirmations, ready notifications, analytics, and business ops from the same platform.",
-    icon: BellRing,
-  },
-]
-
-const capabilities = [
-  "AI voice intake for food orders",
-  "Live kitchen display by business",
-  "Business portal for menu, staff, and settings",
-  "Admin onboarding for multi-tenant rollout",
-  "Supabase-backed order storage and role management",
-  "Built for delis, pizza shops, takeout counters, and fast-moving kitchens",
-]
-
-const audiences = [
-  {
-    title: "Independent delis",
-    copy: "Capture rush-hour calls without pulling someone off the line.",
-    icon: Store,
-  },
-  {
-    title: "Takeout-heavy restaurants",
-    copy: "Standardize incoming orders and reduce mistakes on custom items.",
-    icon: MessageSquareMore,
-  },
-  {
-    title: "Growing operators",
-    copy: "Roll out the same workflow across multiple businesses from one platform.",
-    icon: BarChart3,
-  },
-]
 
 export default function MarketingHomePage() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#050505_0%,#090909_36%,#120808_100%)] text-white">
-      <section className="relative isolate overflow-hidden border-b border-white/8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(225,29,72,0.25),transparent_35%),radial-gradient(circle_at_78%_18%,rgba(245,158,11,0.18),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_38%)]" />
-        <div className="absolute left-1/2 top-24 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(220,38,38,0.18),transparent_62%)] blur-3xl" />
+    <main className="min-h-screen bg-[#080808] text-white overflow-x-hidden">
 
-        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
-          <header className="flex flex-wrap items-center justify-between gap-4 rounded-full border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,oklch(0.62_0.22_25),oklch(0.52_0.2_20))] shadow-[0_12px_40px_rgba(220,38,38,0.28)]">
-                <PhoneCall className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <div className="text-lg font-semibold tracking-tight">OrderFlow AI</div>
-                <div className="text-xs uppercase tracking-[0.24em] text-white/45">ResurgeX Technologies</div>
-              </div>
+      {/* ── Nav ── */}
+      <header className="sticky top-0 z-50 border-b border-white/8 bg-[#080808]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600">
+              <PhoneCall className="h-4 w-4 text-white" />
             </div>
-
-            <nav className="hidden items-center gap-6 text-sm text-white/70 lg:flex">
-              <a href="#platform" className="transition hover:text-white">
-                Platform
-              </a>
-              <a href="#workflow" className="transition hover:text-white">
-                Workflow
-              </a>
-              <a href="#operators" className="transition hover:text-white">
-                Operators
-              </a>
-              <a href="#demo" className="transition hover:text-white">
-                Demo
-              </a>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <Link href="/login">
-                <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
-                  Sign in
-                </Button>
-              </Link>
-              <a href="#demo">
-                <Button className="bg-[oklch(0.58_0.22_25)] text-white hover:bg-[oklch(0.53_0.22_25)]">
-                  Book a demo
-                </Button>
-              </a>
-            </div>
-          </header>
-
-          <div className="grid flex-1 items-center gap-14 py-14 lg:grid-cols-[1.08fr_0.92fr] lg:py-20">
-            <div className="max-w-3xl space-y-8">
-              <Badge className="w-fit border border-white/10 bg-white/8 px-4 py-1.5 text-white hover:bg-white/8">
-                Voice AI for food ordering, kitchen execution, and operator control
-              </Badge>
-
-              <div className="space-y-6">
-                <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.04em] sm:text-6xl lg:text-7xl">
-                  Build the restaurant phone system your staff actually wants.
-                </h1>
-                <p className="max-w-2xl text-lg leading-8 text-white/68 sm:text-xl">
-                  OrderFlow AI answers calls, captures full food orders, pushes structured tickets to a kitchen display, and gives operators one place to manage the workflow behind the rush.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <a href="#demo">
-                  <Button size="lg" className="bg-[oklch(0.58_0.22_25)] px-6 text-white hover:bg-[oklch(0.53_0.22_25)]">
-                    See the live workflow
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </a>
-                <Link href="/login">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white/15 bg-white/6 px-6 text-white hover:bg-white/10 hover:text-white"
-                  >
-                    Open the app
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="grid gap-4 pt-4 sm:grid-cols-3">
-                {outcomes.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <div
-                      key={item.label}
-                      className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)] backdrop-blur"
-                    >
-                      <Icon className="h-5 w-5 text-[oklch(0.72_0.18_80)]" />
-                      <p className="mt-5 text-sm uppercase tracking-[0.22em] text-white/45">{item.label}</p>
-                      <p className="mt-2 text-2xl font-semibold tracking-tight">{item.value}</p>
-                      <p className="mt-2 text-sm leading-6 text-white/62">{item.detail}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -right-8 top-12 hidden h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.26),transparent_65%)] blur-2xl lg:block" />
-              <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-4 shadow-[0_30px_120px_rgba(0,0,0,0.42)] backdrop-blur-xl">
-                <div className="rounded-[1.6rem] border border-white/10 bg-[#080808]/90 p-5">
-                  <div className="flex items-center justify-between border-b border-white/8 pb-4">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.24em] text-white/45">Live system view</p>
-                      <h2 className="mt-1 text-2xl font-semibold">Call to kitchen in one operating flow</h2>
-                    </div>
-                    <Badge className="border border-emerald-400/30 bg-emerald-400/12 text-emerald-200 hover:bg-emerald-400/12">
-                      System online
-                    </Badge>
-                  </div>
-
-                  <div className="mt-5 grid gap-4">
-                    <div className="rounded-3xl border border-white/8 bg-[linear-gradient(135deg,rgba(220,38,38,0.18),rgba(255,255,255,0.04))] p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm uppercase tracking-[0.2em] text-white/50">Voice intake</p>
-                          <p className="mt-1 text-xl font-semibold">AI answers the call in your brand voice</p>
-                        </div>
-                        <div className="rounded-2xl bg-white/8 p-3">
-                          <Bot className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-white/8 bg-black/25 p-4">
-                          <p className="text-xs uppercase tracking-[0.22em] text-white/42">Customer says</p>
-                          <p className="mt-2 text-sm leading-6 text-white/78">
-                            &quot;Two Michelangelos, one on 12 inch sub, one on a hard roll, no cherry peppers, extra provolone.&quot;
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-white/8 bg-black/25 p-4">
-                          <p className="text-xs uppercase tracking-[0.22em] text-white/42">System captures</p>
-                          <p className="mt-2 text-sm leading-6 text-white/78">
-                            item, quantity, bread, modifiers, customer phone, and order timing
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-                      <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.22em] text-white/42">Kitchen display</p>
-                            <p className="mt-1 text-lg font-semibold">Staff sees a usable ticket, not a transcript</p>
-                          </div>
-                          <MonitorSmartphone className="h-5 w-5 text-[oklch(0.72_0.18_80)]" />
-                        </div>
-                        <div className="mt-4 space-y-3">
-                          {[
-                            { status: "New", accent: "bg-[oklch(0.8_0.16_85)]/20 text-[oklch(0.8_0.16_85)]", body: "Order #47 queued with modifiers and timer" },
-                            { status: "Making", accent: "bg-[oklch(0.65_0.22_25)]/20 text-[oklch(0.65_0.22_25)]", body: "Accepted by staff and moved into prep" },
-                            { status: "Ready", accent: "bg-[oklch(0.65_0.18_145)]/20 text-[oklch(0.65_0.18_145)]", body: "Ready state supports pickup follow-through" },
-                          ].map((lane) => (
-                            <div key={lane.status} className="rounded-2xl border border-white/8 bg-black/25 p-4">
-                              <div className="flex items-center justify-between">
-                                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${lane.accent}`}>{lane.status}</span>
-                                <ChevronRight className="h-4 w-4 text-white/30" />
-                              </div>
-                              <p className="mt-3 text-sm text-white/72">{lane.body}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/42">Operator control</p>
-                        <p className="mt-1 text-lg font-semibold">Designed as a system, not a one-off AI demo</p>
-                        <div className="mt-4 grid gap-3">
-                          {[
-                            { icon: ShieldCheck, title: "Role-based portal", text: "Separate admin and business flows for onboarding, staff, and settings." },
-                            { icon: Workflow, title: "One multi-tenant foundation", text: "Each business gets its own menu, display, analytics, and operating context." },
-                            { icon: Sparkles, title: "Built for expansion", text: "The architecture is already pointed toward SMS, analytics, and multi-location rollout." },
-                          ].map((item) => {
-                            const Icon = item.icon
-                            return (
-                              <div key={item.title} className="flex gap-3 rounded-2xl border border-white/8 bg-black/25 p-4">
-                                <div className="mt-0.5 rounded-2xl bg-white/8 p-2">
-                                  <Icon className="h-4 w-4 text-white" />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-white">{item.title}</p>
-                                  <p className="mt-1 text-sm leading-6 text-white/62">{item.text}</p>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <span className="text-base font-semibold tracking-tight">OrderFlow AI</span>
           </div>
+
+          <nav className="hidden items-center gap-8 text-sm text-white/60 lg:flex">
+            <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
+            <a href="#operators" className="hover:text-white transition-colors">For operators</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <Link href="/login" className="hover:text-white transition-colors">Sign in</Link>
+          </nav>
+
+          <a href="#demo">
+            <button className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">
+              Book a demo
+            </button>
+          </a>
         </div>
-      </section>
+      </header>
 
-      <section id="platform" className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-10">
-        <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-3">
-            <Badge className="w-fit border border-white/10 bg-white/6 text-white hover:bg-white/6">
-              Product architecture
-            </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              A cleaner operating model for phone-driven food businesses.
-            </h2>
-            <p className="text-base leading-7 text-white/62 sm:text-lg">
-              OrderFlow AI is not just a chatbot on a phone line. It is a connected system across call intake, kitchen execution, staff access, and business-level visibility.
-            </p>
+      {/* ── Hero ── */}
+      <section className="relative border-b border-white/8">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(220,38,38,0.15),transparent_60%)]" />
+        <div className="relative mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/60 mb-8">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+            Live at Provenzano&apos;s Deli, West Haven CT
           </div>
 
-          <div className="max-w-xl rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-sm leading-7 text-white/62">
-            Best fit for delis, pizza counters, takeout concepts, and owner-operators who lose revenue when the phone becomes a distraction instead of a channel.
-          </div>
-        </div>
+          <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+            Your phone answers itself.{" "}
+            <span className="text-red-500">Your kitchen gets the order.</span>
+          </h1>
 
-        <div className="grid gap-6 xl:grid-cols-3">
-          {featureColumns.map((item) => {
-            const Icon = item.icon
-            return (
-              <Card key={item.title} className="border-white/10 bg-white/[0.035] text-white">
-                <CardHeader className="space-y-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(220,38,38,0.22),rgba(245,158,11,0.16))]">
-                    <Icon className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.22em] text-white/42">{item.eyebrow}</p>
-                    <CardTitle className="mt-2 text-2xl leading-tight">{item.title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <p className="leading-7 text-white/62">{item.body}</p>
-                  <div className="space-y-3">
-                    {item.bullets.map((bullet) => (
-                      <div key={bullet} className="flex items-start gap-3">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 text-[oklch(0.72_0.18_80)]" />
-                        <span className="text-sm leading-6 text-white/72">{bullet}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      </section>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/60 sm:text-xl">
+            OrderFlow AI picks up every inbound call, captures the full order including all customizations, and sends a live ticket to your kitchen display — in under 10 seconds. No missed calls, no wrong orders, no staff pulled off the line.
+          </p>
 
-      <section id="workflow" className="border-y border-white/8 bg-white/[0.02]">
-        <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-10 max-w-3xl space-y-3">
-            <Badge className="w-fit border border-white/10 bg-white/6 text-white hover:bg-white/6">
-              End-to-end workflow
-            </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              The system is designed around what actually happens during service.
-            </h2>
-            <p className="text-base leading-7 text-white/62 sm:text-lg">
-              When calls spike, the right answer is not more chaos at the counter. It is a structured path from customer intent to kitchen action.
-            </p>
-          </div>
-
-          <div className="grid gap-5 lg:grid-cols-4">
-            {journey.map((step, index) => {
-              const Icon = step.icon
-              return (
-                <div key={step.title} className="relative rounded-3xl border border-white/10 bg-black/30 p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/8">
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <span className="text-xs uppercase tracking-[0.24em] text-white/35">0{index + 1}</span>
-                  </div>
-                  <p className="mt-6 text-xl font-semibold">{step.title}</p>
-                  <p className="mt-3 text-sm leading-7 text-white/62">{step.description}</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section id="operators" className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-10">
-        <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="space-y-5">
-            <Badge className="w-fit border border-white/10 bg-white/6 text-white hover:bg-white/6">
-              Who this is for
-            </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Built for operators who need calls handled without adding more staff friction.
-            </h2>
-            <p className="max-w-2xl text-base leading-7 text-white/62 sm:text-lg">
-              The product is especially strong when menus have lots of modifiers, rush windows are intense, and the same team juggling prep also has to answer the phone.
-            </p>
-
-            <div className="grid gap-4">
-              {audiences.map((audience) => {
-                const Icon = audience.icon
-                return (
-                  <div key={audience.title} className="flex gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/8">
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold">{audience.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-white/62">{audience.copy}</p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-6">
-            <p className="text-xs uppercase tracking-[0.22em] text-white/40">Core capabilities</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {capabilities.map((capability) => (
-                <div key={capability} className="rounded-2xl border border-white/8 bg-black/25 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-full bg-white/10 p-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.72_0.18_80)]" />
-                    </div>
-                    <p className="text-sm leading-6 text-white/74">{capability}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 rounded-3xl border border-white/8 bg-black/25 p-5">
-              <p className="text-sm uppercase tracking-[0.22em] text-white/40">Messaging angle</p>
-              <p className="mt-3 text-xl font-semibold">
-                The homepage should sell calm operations, fewer missed orders, and a cleaner rollout path for real restaurants.
-              </p>
-              <p className="mt-3 text-sm leading-7 text-white/62">
-                That is the framing this redesign leans into: not generic AI hype, but a sharper picture of how the system helps a busy food business answer calls, structure work, and operate with more control.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="demo" className="mx-auto w-full max-w-7xl px-6 pb-24 lg:px-10">
-        <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.28)] lg:p-8">
-          <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
-            <div className="space-y-5">
-              <Badge className="w-fit border border-white/10 bg-white/6 text-white hover:bg-white/6">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <a href="#demo-flow">
+              <button className="rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
+                See it live
+              </button>
+            </a>
+            <a href="#demo">
+              <button className="rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-colors">
                 Book a walkthrough
-              </Badge>
-              <div className="space-y-3">
-                <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Bring your menu, your rush-hour pain points, and your current workflow.
-                </h2>
-                <p className="text-base leading-7 text-white/62 sm:text-lg">
-                  We will walk you through how OrderFlow AI handles call intake, kitchen tickets, staff flow, and rollout for your business.
-                </p>
+              </button>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats ── */}
+      <section className="border-b border-white/8 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-10">
+          <div className="grid grid-cols-1 gap-px bg-white/8 sm:grid-cols-3">
+            {[
+              { value: "24/7", label: "Calls answered without a human" },
+              { value: "< 10 sec", label: "From call end to kitchen display" },
+              { value: "Zero", label: "Extra staff required" },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-[#080808] px-8 py-10 text-center sm:text-left">
+                <p className="text-4xl font-bold text-white">{stat.value}</p>
+                <p className="mt-2 text-sm text-white/50">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Live Demo Flow ── */}
+      <section id="demo-flow" className="border-b border-white/8">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">Real order. Real result.</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From call to kitchen in one flow.</h2>
+            <p className="mt-4 text-base text-white/55">This is an actual order taken at Provenzano&apos;s Deli. No editing, no demo mode.</p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Conversation */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-2">The call</p>
+
+              <div className="flex gap-3">
+                <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-red-600/20 text-xs font-bold text-red-400">AI</div>
+                <div className="rounded-2xl rounded-tl-sm bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/80">
+                  &ldquo;Thank you for calling Provenzano&apos;s Deli, what can I get for you today?&rdquo;
+                </div>
               </div>
 
-              <div className="space-y-3 rounded-3xl border border-white/8 bg-black/25 p-5">
-                <p className="text-sm uppercase tracking-[0.22em] text-white/40">What happens next</p>
+              <div className="flex gap-3 flex-row-reverse">
+                <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white/60">C</div>
+                <div className="rounded-2xl rounded-tr-sm bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white/70">
+                  &ldquo;Two Michelangelos, one on a 12 inch, no cherry peppers, extra provolone. And a chicken parm on a hard roll.&rdquo;
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-red-600/20 text-xs font-bold text-red-400">AI</div>
+                <div className="rounded-2xl rounded-tl-sm bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/80">
+                  &ldquo;Got it — two Michelangelos on a 12 inch, no cherry peppers, extra provolone. One chicken parm on a hard roll. Your order number is 47. We&apos;ll have it ready in about 15 minutes. Thanks!&rdquo;
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-2.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                <span className="text-xs text-green-300">Order confirmed and sent to kitchen in 8 seconds</span>
+              </div>
+            </div>
+
+            {/* Kitchen ticket */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-4">Kitchen display ticket</p>
+              <div className="rounded-xl border border-white/10 bg-[#0d0d0d] p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/8 pb-4">
+                  <div>
+                    <span className="text-xs text-white/40">Order</span>
+                    <p className="text-2xl font-bold">#47</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="rounded-full bg-yellow-500/15 px-3 py-1 text-xs font-semibold text-yellow-400">New</span>
+                    <p className="mt-1 text-xs text-white/40">Just now · (203) 555-0147</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
+                    <p className="text-sm font-semibold">Michelangelo ×2</p>
+                    <p className="text-xs text-white/50 mt-1">12 inch sub &nbsp;·&nbsp; <span className="text-red-400">− cherry peppers</span> &nbsp;·&nbsp; <span className="text-green-400">+ extra provolone</span></p>
+                  </div>
+                  <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
+                    <p className="text-sm font-semibold">Chicken Parm ×1</p>
+                    <p className="text-xs text-white/50 mt-1">Hard roll</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                  {["Accept", "Making", "Ready"].map((action, i) => (
+                    <button key={action} className={`rounded-lg py-2 text-xs font-semibold transition-colors ${i === 0 ? "bg-red-600 text-white" : "border border-white/10 text-white/40"}`}>
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── How It Works ── */}
+      <section id="how-it-works" className="border-b border-white/8 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">How it works</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Four steps. No new hardware. No training.</h2>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                step: "01",
+                title: "Answer",
+                body: "The AI picks up and greets the caller by your business name. Sounds natural, not robotic.",
+              },
+              {
+                step: "02",
+                title: "Capture",
+                body: "Takes down every item, bread choice, modification, and special request. Confirms the full order back to the customer before ending the call.",
+              },
+              {
+                step: "03",
+                title: "Execute",
+                body: "A clean structured order ticket appears on your kitchen display instantly. Staff see the order number, items, and every modification clearly.",
+              },
+              {
+                step: "04",
+                title: "Notify",
+                body: "The customer gets an automatic SMS confirming their order. When staff mark it done, the customer gets another SMS that it's ready for pickup.",
+              },
+            ].map((item) => (
+              <div key={item.step} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+                <p className="text-4xl font-bold text-white/10">{item.step}</p>
+                <p className="mt-4 text-lg font-semibold">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-white/55">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="border-b border-white/8">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">What's included</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything you need. Nothing you don't.</h2>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                title: "Voice AI call intake",
+                body: "Handles your full menu including combos, modifiers, and substitutions in natural conversation. No scripts, no keypad menus, no hold music.",
+              },
+              {
+                title: "Live kitchen display",
+                body: "Orders appear on screen in under 10 seconds. Staff work a New, Making, Ready board — one tap to update each order's status.",
+              },
+              {
+                title: "Customer SMS notifications",
+                body: "Automatic text when the order is received and another when it's ready for pickup. Reduces the callback calls.",
+              },
+              {
+                title: "Menu management portal",
+                body: "Upload a photo of your menu. The AI extracts every item, price, and modifier automatically. Review, edit, and go live in under 30 minutes.",
+              },
+              {
+                title: "Order history and analytics",
+                body: "Full searchable record of every order. See your busiest hours, most ordered items, and average fulfillment time.",
+              },
+              {
+                title: "Multi-location support",
+                body: "Each location gets its own phone number, kitchen display, and menu. All managed from one operator account.",
+              },
+            ].map((feature) => (
+              <div key={feature.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
+                  <div>
+                    <p className="font-semibold">{feature.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-white/55">{feature.body}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Who It's For ── */}
+      <section id="operators" className="border-b border-white/8 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">For operators</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Built for restaurants where the phone never stops.</h2>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            {[
+              {
+                title: "Delis and sub shops",
+                body: "High modifier volume, complex customizations, and a lunch rush that overwhelms the counter. This is exactly the business we built for first.",
+              },
+              {
+                title: "Pizza and takeout counters",
+                body: "Custom orders, repeat customers, and a team that cannot be answering phones while making food.",
+              },
+              {
+                title: "Bakeries and specialty shops",
+                body: "Custom orders placed in advance with specific details that cannot be written down wrong. AI captures and stores everything.",
+              },
+              {
+                title: "Growing operators",
+                body: "Running more than one location and tired of each one having a different broken system for phone orders.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+                <ChevronRight className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
+                <div>
+                  <p className="font-semibold">{item.title}</p>
+                  <p className="mt-1.5 text-sm leading-6 text-white/55">{item.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="border-b border-white/8">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">Pricing</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple pricing. No setup fees. Cancel anytime.</h2>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-3">
+            {[
+              {
+                name: "Starter",
+                price: "$49",
+                period: "/month",
+                description: "Perfect for a single location just getting started.",
+                features: [
+                  "Up to 150 orders/month",
+                  "Phone AI intake",
+                  "One kitchen display",
+                  "SMS notifications",
+                ],
+                cta: "Get started",
+                highlight: false,
+              },
+              {
+                name: "Growth",
+                price: "$99",
+                period: "/month",
+                description: "For busy restaurants that need everything working together.",
+                features: [
+                  "Unlimited orders",
+                  "All channels",
+                  "Analytics dashboard",
+                  "Order history",
+                  "Menu editor",
+                ],
+                cta: "Get started",
+                highlight: true,
+              },
+              {
+                name: "Pro",
+                price: "$149",
+                period: "/month",
+                description: "For operators running multiple locations from one account.",
+                features: [
+                  "Everything in Growth",
+                  "Multiple displays",
+                  "Multi-location",
+                  "Staff roles",
+                  "Priority support",
+                ],
+                cta: "Get started",
+                highlight: false,
+              },
+            ].map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl border p-7 flex flex-col ${
+                  plan.highlight
+                    ? "border-red-500/50 bg-red-600/8 ring-1 ring-red-500/30"
+                    : "border-white/10 bg-white/[0.03]"
+                }`}
+              >
+                {plan.highlight && (
+                  <p className="mb-4 w-fit rounded-full bg-red-600 px-3 py-0.5 text-xs font-semibold text-white">
+                    Most popular
+                  </p>
+                )}
+                <p className="text-lg font-semibold">{plan.name}</p>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">{plan.price}</span>
+                  <span className="text-white/50">{plan.period}</span>
+                </div>
+                <p className="mt-3 text-sm text-white/50">{plan.description}</p>
+                <ul className="mt-6 flex-1 space-y-3">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2.5 text-sm text-white/70">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-red-500" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <a href="#demo" className="mt-8 block">
+                  <button className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                    plan.highlight
+                      ? "bg-red-600 text-white hover:bg-red-700"
+                      : "border border-white/15 text-white hover:bg-white/8"
+                  }`}>
+                    {plan.cta}
+                  </button>
+                </a>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-8 text-center text-sm text-white/40">No setup fee. Cancel anytime.</p>
+        </div>
+      </section>
+
+      {/* ── Demo / CTA ── */}
+      <section id="demo" className="border-b border-white/8 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr]">
+            <div className="space-y-5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-red-500">Book a walkthrough</p>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Bring your menu and your rush hour.</h2>
+              <p className="text-base leading-7 text-white/55">
+                We'll walk you through how OrderFlow AI handles your specific menu, your order volume, and your team's workflow. Takes 20 minutes. No commitment.
+              </p>
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                 {[
                   "We review your restaurant type, current order volume, and workflow.",
                   "We show how voice AI, kitchen display, and the business portal fit together.",
                   "We map the right rollout path for one location or multiple businesses.",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3">
-                    <ChevronRight className="mt-1 h-4 w-4 text-[oklch(0.72_0.18_80)]" />
-                    <p className="text-sm leading-6 text-white/70">{item}</p>
+                    <ChevronRight className="mt-1 h-4 w-4 flex-shrink-0 text-red-500" />
+                    <p className="text-sm leading-6 text-white/60">{item}</p>
                   </div>
                 ))}
               </div>
-
-              <Link href="/login">
-                <Button
-                  variant="outline"
-                  className="border-white/15 bg-white/6 text-white hover:bg-white/10 hover:text-white"
-                >
+              <Link href="/login" className="inline-block">
+                <button className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors">
                   Existing customer sign in
-                </Button>
+                </button>
               </Link>
             </div>
-
             <DemoRequestForm />
           </div>
         </div>
       </section>
+
+      {/* ── Footer ── */}
+      <footer className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-600">
+              <PhoneCall className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-sm font-semibold">OrderFlow AI</span>
+            <span className="text-sm text-white/30">· Built by ResurgeX Technologies · © 2026</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-white/40">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="mailto:hello@resurgex.ai" className="hover:text-white transition-colors">Contact</a>
+          </div>
+        </div>
+      </footer>
+
     </main>
   )
 }
