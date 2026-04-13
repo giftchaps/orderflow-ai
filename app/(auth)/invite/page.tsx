@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -15,8 +15,47 @@ export default function InvitePage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
 
-  const handleAccept = async (e: React.FormEvent) => {
+  // Supabase sends invite links with tokens in the URL hash.
+  // We must exchange them for a session before updateUser will work.
+  useEffect(() => {
+    const supabase = createClient()
+
+    const exchangeToken = async () => {
+      const hash = window.location.hash
+      const params = new URLSearchParams(hash.replace("#", ""))
+      const accessToken = params.get("access_token")
+      const refreshToken = params.get("refresh_token")
+      const type = params.get("type")
+
+      if (accessToken && refreshToken && type === "invite") {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        if (error) {
+          setError("Invalid or expired invite link. Please ask for a new one.")
+          return
+        }
+        // Clean up the hash so tokens aren't visible in the URL
+        window.history.replaceState(null, "", window.location.pathname)
+        setSessionReady(true)
+      } else {
+        // Check if there's already an active session (e.g. page refresh after token exchange)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          setSessionReady(true)
+        } else {
+          setError("Invalid or expired invite link. Please ask for a new one.")
+        }
+      }
+    }
+
+    exchangeToken()
+  }, [])
+
+  const handleAccept = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -93,8 +132,8 @@ export default function InvitePage() {
                 </p>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Setting up account..." : "Accept invitation"}
+              <Button type="submit" className="w-full" disabled={loading || !sessionReady}>
+                {loading ? "Setting up account..." : !sessionReady ? "Verifying invite..." : "Accept invitation"}
               </Button>
             </form>
           </CardContent>
