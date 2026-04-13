@@ -32,7 +32,43 @@ const createOrderBodySchema = z.object({
   specialInstructions: z.string().nullable().optional(),
 })
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const slug = searchParams.get("slug")
+
+  // If a slug is provided, resolve the business by slug
+  if (slug) {
+    try {
+      const supabase = createSupabaseServerClient()
+      const { data: business, error: bizError } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("slug", slug)
+        .single()
+
+      if (bizError || !business) {
+        return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
+      }
+
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, order_number, status, channel, customer_phone, placed_at, items, special_instructions")
+        .eq("business_id", business.id)
+        .in("status", ["pending", "making", "ready"])
+        .order("placed_at", { ascending: true })
+
+      if (error) throw new Error(error.message)
+
+      return NextResponse.json({ ok: true, orders: z.array(orderSchema).parse(data ?? []) })
+    } catch (error) {
+      return NextResponse.json(
+        { ok: false, message: error instanceof Error ? error.message : "Unable to load orders." },
+        { status: 500 }
+      )
+    }
+  }
+
+  // Fall back to env-configured business
   const envIssues = getServerEnvIssues()
 
   if (envIssues.length > 0) {
@@ -48,7 +84,6 @@ export async function GET() {
 
   try {
     const orders = await listActiveOrders()
-
     return NextResponse.json({ ok: true, orders })
   } catch (error) {
     return NextResponse.json(

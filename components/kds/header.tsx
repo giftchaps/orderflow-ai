@@ -18,6 +18,7 @@ interface HeaderProps {
   connectionError?: string | null
   onRefresh?: () => void
   isRefreshing?: boolean
+  slug?: string
 }
 
 interface ConnectionConfig {
@@ -113,15 +114,16 @@ function ConnectionIndicator({ status, error }: { status: ConnectionStatus; erro
   )
 }
 
-export function Header({ orderCount, connectionStatus, connectionError, onRefresh, isRefreshing }: HeaderProps) {
+export function Header({ orderCount, connectionStatus, connectionError, onRefresh, isRefreshing, slug }: HeaderProps) {
   const [businessName, setBusinessName] = useState<string>("Kitchen Display")
 
   useEffect(() => {
-    fetch("/api/business")
+    const url = slug ? `/api/business?slug=${encodeURIComponent(slug)}` : "/api/business"
+    fetch(url)
       .then((r) => r.json())
       .then((data) => { if (data.name) setBusinessName(data.name) })
       .catch(() => {})
-  }, [])
+  }, [slug])
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-b border-border">

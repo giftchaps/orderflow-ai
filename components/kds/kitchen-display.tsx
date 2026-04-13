@@ -138,7 +138,7 @@ function isOrdersErrorResponse(
   return payload.ok === false
 }
 
-export function KitchenDisplay() {
+export function KitchenDisplay({ slug }: { slug?: string }) {
   const [orders, setOrders] = useState<Order[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set())
@@ -169,7 +169,8 @@ export function KitchenDisplay() {
 
   const syncOrders = useCallback(async () => {
     try {
-      const response = await fetch("/api/orders", { cache: "no-store" })
+      const url = slug ? `/api/orders?slug=${encodeURIComponent(slug)}` : "/api/orders"
+      const response = await fetch(url, { cache: "no-store" })
       const payload = (await response.json()) as OrdersSuccessResponse | OrdersErrorResponse
 
       if (!response.ok) {
@@ -248,7 +249,8 @@ export function KitchenDisplay() {
       setConnectionError(null)
 
       try {
-        const response = await fetch("/api/health/db", { cache: "no-store" })
+        const healthUrl = slug ? `/api/health/db?slug=${encodeURIComponent(slug)}` : "/api/health/db"
+        const response = await fetch(healthUrl, { cache: "no-store" })
         const payload = (await response.json()) as HealthResponse
 
         if (cancelled) {
@@ -363,6 +365,7 @@ export function KitchenDisplay() {
         connectionError={connectionError}
         onRefresh={!showConfig || demoMode ? handleRefresh : undefined}
         isRefreshing={isRefreshing}
+        slug={slug}
       />
 
       <main className="p-6">

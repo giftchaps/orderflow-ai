@@ -5,7 +5,7 @@ type Props = {
 }
 
 export default async function DisplayPage({ params }: Props) {
-  await params
+  const { slug } = await params
 
-  return <KitchenDisplay />
+  return <KitchenDisplay slug={slug} />
 }
