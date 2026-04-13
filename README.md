@@ -17,6 +17,10 @@ The app no longer accepts Supabase credentials in the browser or stores them in 
 Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ORDERFLOW_BUSINESS_ID=123e4567-e89b-12d3-a456-426614174000

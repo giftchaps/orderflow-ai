@@ -46,6 +46,15 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/me", {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     })
+    if (res.status === 404) {
+      setError(
+        "This deployment is outdated (missing /api/auth/me). Redeploy the latest main branch in Vercel, then try again."
+      )
+      setLoading(false)
+      setStep(null)
+      return
+    }
+
     const staff = await res.json()
 
     if (!res.ok) {
