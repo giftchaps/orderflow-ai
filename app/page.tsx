@@ -1,400 +1,179 @@
-"use client"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { ArrowRight, CheckCircle2, MessageSquareText, MonitorSmartphone, PhoneCall, Sparkles } from "lucide-react"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { ConfigDialog } from "@/components/kds/config-dialog"
-import { Header, type ConnectionStatus } from "@/components/kds/header"
-import { OrderColumn } from "@/components/kds/order-column"
-import { OrderToast } from "@/components/kds/order-toast"
-import type { Order } from "@/lib/orders"
-
-const DEMO_ORDERS: Order[] = [
+const plans = [
   {
-    id: "demo-1",
-    order_number: 47,
-    status: "pending",
-    channel: "phone",
-    customer_phone: "+1 203 555 0199",
-    placed_at: new Date(Date.now() - 3 * 60000).toISOString(),
-    items: [
-      {
-        name: "Michelangelo",
-        qty: 1,
-        bread: '12" Sub',
-        mods: [
-          { type: "remove", item: "no cherry peppers" },
-          { type: "add", item: "extra provolone" },
-        ],
-      },
-      { name: "Provy", qty: 1, bread: "Hard Roll", mods: [] },
-    ],
-    special_instructions: "",
+    name: "Starter",
+    price: "$49/mo",
+    description: "For small shops getting started with AI ordering.",
+    features: ["AI phone intake", "Kitchen display", "Email support"],
   },
   {
-    id: "demo-2",
-    order_number: 48,
-    status: "making",
-    channel: "phone",
-    customer_phone: "+1 203 555 0211",
-    placed_at: new Date(Date.now() - 8 * 60000).toISOString(),
-    items: [
-      { name: "Chicken Parm", qty: 2, bread: '6" Sub', mods: [] },
-      {
-        name: "Meatball Parmesan",
-        qty: 1,
-        bread: '12" Sub',
-        mods: [{ type: "add", item: "extra sauce" }],
-      },
-    ],
-    special_instructions: "Extra napkins please",
+    name: "Growth",
+    price: "$99/mo",
+    description: "For growing restaurants that need more volume.",
+    features: ["Everything in Starter", "SMS confirmations", "Menu editing"],
+    featured: true,
   },
   {
-    id: "demo-3",
-    order_number: 46,
-    status: "ready",
-    channel: "whatsapp_text",
-    customer_phone: "+1 203 555 0133",
-    placed_at: new Date(Date.now() - 22 * 60000).toISOString(),
-    items: [
-      {
-        name: "Caesar Salad",
-        qty: 1,
-        bread: null,
-        mods: [{ type: "add", item: "extra chicken" }],
-      },
-    ],
-    special_instructions: "",
+    name: "Pro",
+    price: "$149/mo",
+    description: "For high-volume businesses and multi-location operations.",
+    features: ["Everything in Growth", "Priority onboarding", "Analytics"],
   },
 ]
 
-interface HealthResponse {
-  ok: boolean
-  status?: "connected" | "misconfigured" | "error"
-  message?: string
-  issues?: string[]
-}
+const highlights = [
+  "Voice AI answers calls and takes complete orders",
+  "Orders appear instantly on the kitchen display",
+  "Staff can accept, prepare, and finish orders",
+  "Built for multi-location food businesses",
+]
 
-interface OrdersSuccessResponse {
-  ok: true
-  orders: Order[]
-}
-
-interface OrdersErrorResponse {
-  ok: false
-  message?: string
-  issues?: string[]
-}
-
-function getChannelLabel(channel: Order["channel"]): string {
-  const labels = {
-    phone: "PHONE",
-    whatsapp_text: "WHATSAPP",
-    whatsapp_voice: "VOICE NOTE",
-    sms: "SMS",
-  } satisfies Record<Order["channel"], string>
-
-  return labels[channel]
-}
-
-function playAlert() {
-  try {
-    const ctx = new AudioContext()
-
-    const playDing = (startTime: number) => {
-      // Primary tone — warm bell-like fundamental
-      const osc1 = ctx.createOscillator()
-      const gain1 = ctx.createGain()
-      osc1.type = "sine"
-      osc1.frequency.value = 660
-      gain1.gain.setValueAtTime(0, startTime)
-      gain1.gain.linearRampToValueAtTime(0.6, startTime + 0.01)
-      gain1.gain.exponentialRampToValueAtTime(0.001, startTime + 1.2)
-      osc1.connect(gain1)
-      gain1.connect(ctx.destination)
-      osc1.start(startTime)
-      osc1.stop(startTime + 1.2)
-
-      // Harmonic overtone — adds richness
-      const osc2 = ctx.createOscillator()
-      const gain2 = ctx.createGain()
-      osc2.type = "sine"
-      osc2.frequency.value = 1320
-      gain2.gain.setValueAtTime(0, startTime)
-      gain2.gain.linearRampToValueAtTime(0.25, startTime + 0.01)
-      gain2.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6)
-      osc2.connect(gain2)
-      gain2.connect(ctx.destination)
-      osc2.start(startTime)
-      osc2.stop(startTime + 0.6)
-    }
-
-    // Two dings — spaced 0.6s apart
-    playDing(ctx.currentTime)
-    playDing(ctx.currentTime + 0.65)
-  } catch {
-    // Audio context is not always available.
-  }
-}
-
-function isOrdersErrorResponse(
-  payload: OrdersSuccessResponse | OrdersErrorResponse
-): payload is OrdersErrorResponse {
-  return payload.ok === false
-}
-
-export default function KitchenDisplay() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [toast, setToast] = useState<string | null>(null)
-  const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set())
-  const [demoMode, setDemoMode] = useState(false)
-  const [showConfig, setShowConfig] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected")
-  const [connectionError, setConnectionError] = useState<string | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const healthIssuesRef = useRef<string[]>([])
-  const newOrderTimeoutRef = useRef<number | null>(null)
-
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast(null), 3000)
-  }, [])
-
-  const setNewOrders = useCallback((orderIds: string[]) => {
-    if (newOrderTimeoutRef.current) {
-      window.clearTimeout(newOrderTimeoutRef.current)
-    }
-
-    setNewOrderIds(new Set(orderIds))
-    newOrderTimeoutRef.current = window.setTimeout(() => {
-      setNewOrderIds(new Set())
-      newOrderTimeoutRef.current = null
-    }, 3000)
-  }, [])
-
-  const syncOrders = useCallback(async () => {
-    try {
-      const response = await fetch("/api/orders", { cache: "no-store" })
-      const payload = (await response.json()) as OrdersSuccessResponse | OrdersErrorResponse
-
-      if (!response.ok) {
-        const errorPayload = isOrdersErrorResponse(payload)
-          ? payload
-          : { ok: false as const, message: "Unable to load orders.", issues: [] }
-        const message = errorPayload.issues?.length
-          ? errorPayload.issues.join(" ")
-          : errorPayload.message || "Unable to load orders."
-
-        healthIssuesRef.current = errorPayload.issues ?? []
-        setConnectionStatus("error")
-        setConnectionError(message)
-        setShowConfig(true)
-        return
-      }
-
-      if (isOrdersErrorResponse(payload)) {
-        const message = payload.issues?.length
-          ? payload.issues.join(" ")
-          : payload.message || "Unable to load orders."
-
-        healthIssuesRef.current = payload.issues ?? []
-        setConnectionStatus("error")
-        setConnectionError(message)
-        setShowConfig(true)
-        return
-      }
-
-      setOrders((currentOrders) => {
-        const currentIds = new Set(currentOrders.map((order) => order.id))
-        const insertedOrders = payload.orders.filter((order) => !currentIds.has(order.id))
-
-        if (insertedOrders.length > 0 && currentOrders.length > 0) {
-          setNewOrders(insertedOrders.map((order) => order.id))
-          playAlert()
-          showToast(
-            `New order #${insertedOrders[0].order_number} - ${getChannelLabel(insertedOrders[0].channel)}`
-          )
-        }
-
-        if (payload.orders.length === 0) {
-          setNewOrderIds(new Set())
-        }
-
-        return payload.orders
-      })
-
-      healthIssuesRef.current = []
-      setConnectionStatus("connected")
-      setConnectionError(null)
-      setShowConfig(false)
-    } catch (error) {
-      setConnectionStatus("error")
-      setConnectionError(error instanceof Error ? error.message : "Failed to connect")
-      setShowConfig(true)
-    } finally {
-      setIsRefreshing(false)
-    }
-  }, [setNewOrders, showToast])
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true)
-    await syncOrders()
-  }, [syncOrders])
-
-  useEffect(() => {
-    if (demoMode) {
-      return
-    }
-
-    let cancelled = false
-
-    const bootstrap = async () => {
-      setConnectionStatus("connecting")
-      setConnectionError(null)
-
-      try {
-        const response = await fetch("/api/health/db", { cache: "no-store" })
-        const payload = (await response.json()) as HealthResponse
-
-        if (cancelled) {
-          return
-        }
-
-        if (!response.ok || !payload.ok) {
-          setConnectionStatus("error")
-          setConnectionError(payload.message || "Database connection failed.")
-          healthIssuesRef.current = payload.issues ?? []
-          setShowConfig(true)
-          return
-        }
-
-        await syncOrders()
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-        setConnectionStatus("error")
-        setConnectionError(
-          error instanceof Error ? error.message : "Database connection failed."
-        )
-        setShowConfig(true)
-      }
-    }
-
-    void bootstrap()
-
-    const interval = window.setInterval(() => {
-      void syncOrders()
-    }, 15000)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-    }
-  }, [demoMode, syncOrders])
-
-  useEffect(() => {
-    if (!demoMode) {
-      return
-    }
-
-    setOrders(DEMO_ORDERS)
-    setNewOrderIds(new Set())
-    setConnectionStatus("connected")
-    setConnectionError(null)
-    setShowConfig(false)
-  }, [demoMode])
-
-  useEffect(() => {
-    return () => {
-      if (newOrderTimeoutRef.current) {
-        window.clearTimeout(newOrderTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  const handleStatusChange = async (orderId: string, newStatus: Order["status"]) => {
-    if (demoMode) {
-      setOrders((currentOrders) =>
-        currentOrders
-          .map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
-          .filter((order) => !["done", "cancelled"].includes(order.status))
-      )
-
-      if (newStatus === "ready") {
-        showToast("Customer notified - order is ready!")
-      }
-
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      const payload = (await response.json()) as { ok: boolean; message?: string }
-
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.message || "Unable to update order.")
-      }
-
-      await syncOrders()
-
-      if (newStatus === "ready") {
-        showToast("Customer notified - order is ready!")
-      }
-    } catch (error) {
-      setConnectionStatus("error")
-      setConnectionError(error instanceof Error ? error.message : "Unable to update order.")
-    }
-  }
-
-  const pendingOrders = orders.filter((order) => order.status === "pending")
-  const makingOrders = orders.filter((order) => order.status === "making")
-  const readyOrders = orders.filter((order) => order.status === "ready")
-
+export default function MarketingHomePage() {
   return (
-    <div className="min-h-screen bg-background">
-      {showConfig && <ConfigDialog onDemo={() => setDemoMode(true)} issues={healthIssuesRef.current} />}
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(220,38,38,0.18),_transparent_35%),linear-gradient(180deg,#0b0b0c_0%,#090909_100%)] text-white">
+      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
+        <header className="flex items-center justify-between">
+          <div>
+            <div className="text-lg font-semibold tracking-tight">OrderFlow AI</div>
+            <div className="text-xs text-white/60">AI ordering for restaurants</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/login">
+              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
+                Sign in
+              </Button>
+            </Link>
+            <a href="mailto:hello@orderflowai.app?subject=Request%20a%20demo">
+              <Button className="bg-[oklch(0.55_0.2_25)] text-white hover:bg-[oklch(0.5_0.2_25)]">
+                Request demo
+              </Button>
+            </a>
+          </div>
+        </header>
 
-      <Header
-        orderCount={orders.length}
-        connectionStatus={connectionStatus}
-        connectionError={connectionError}
-        onRefresh={!showConfig || demoMode ? handleRefresh : undefined}
-        isRefreshing={isRefreshing}
-      />
+        <div className="grid flex-1 items-center gap-14 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
+          <div className="space-y-8">
+            <Badge className="bg-white/10 text-white hover:bg-white/10">Built for deli, pizza, and takeout operations</Badge>
+            <div className="space-y-5 max-w-3xl">
+              <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
+                Let AI answer the phone and push orders straight to the kitchen.
+              </h1>
+              <p className="text-lg leading-8 text-white/70 sm:text-xl">
+                OrderFlow AI takes phone orders, confirms customizations, and sends them to a live kitchen display so your team can move faster with fewer missed calls.
+              </p>
+            </div>
 
-      <main className="p-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <OrderColumn
-            title="New"
-            status="pending"
-            orders={pendingOrders}
-            onStatusChange={handleStatusChange}
-            newOrderIds={newOrderIds}
-          />
-          <OrderColumn
-            title="Making"
-            status="making"
-            orders={makingOrders}
-            onStatusChange={handleStatusChange}
-            newOrderIds={newOrderIds}
-          />
-          <OrderColumn
-            title="Ready"
-            status="ready"
-            orders={readyOrders}
-            onStatusChange={handleStatusChange}
-            newOrderIds={newOrderIds}
-          />
+            <div className="flex flex-wrap gap-3">
+              <Link href="/login">
+                <Button size="lg" className="bg-[oklch(0.55_0.2_25)] text-white hover:bg-[oklch(0.5_0.2_25)]">
+                  Open app
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <a href="mailto:hello@orderflowai.app?subject=Request%20a%20demo">
+                <Button size="lg" variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                  Request a demo
+                </Button>
+              </a>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {highlights.map((item) => (
+                <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-400" />
+                  <span className="text-sm leading-6 text-white/80">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-3xl border border-white/10 bg-black/40 p-5 shadow-2xl shadow-black/40 backdrop-blur-xl">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card className="border-white/10 bg-white/5 text-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium text-white/70">
+                    <PhoneCall className="h-4 w-4 text-red-400" />
+                    AI Phone Intake
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold">24/7</p>
+                  <p className="mt-1 text-sm text-white/60">Answer every call without missing orders.</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-white/10 bg-white/5 text-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium text-white/70">
+                    <MonitorSmartphone className="h-4 w-4 text-red-400" />
+                    Kitchen Display
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold">Live</p>
+                  <p className="mt-1 text-sm text-white/60">Orders route straight to the line.</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base text-white">
+                  <MessageSquareText className="h-4 w-4 text-red-400" />
+                  What the system does
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-white/70">
+                <p>• Answers calls with your business name</p>
+                <p>• Captures items, modifiers, and special instructions</p>
+                <p>• Sends the order to the kitchen board</p>
+                <p>• Supports admin, business, and staff portals</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </main>
+      </section>
 
-      {toast && <OrderToast message={toast} />}
-    </div>
+      <section id="pricing" className="mx-auto w-full max-w-7xl px-6 pb-20 lg:px-10">
+        <div className="mb-8 max-w-2xl space-y-3">
+          <Badge className="bg-white/10 text-white hover:bg-white/10">Pricing</Badge>
+          <h2 className="text-3xl font-semibold tracking-tight">Simple packages built for food businesses.</h2>
+          <p className="text-white/65">
+            Start small, grow into more automation, and keep one product for phone orders, kitchen operations, and analytics.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <Card
+              key={plan.name}
+              className={`border-white/10 ${plan.featured ? "bg-white/10 ring-1 ring-red-400/40" : "bg-white/5"} text-white`}
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between text-xl text-white">
+                  {plan.name}
+                  {plan.featured ? <Badge className="bg-red-500 text-white hover:bg-red-500">Popular</Badge> : null}
+                </CardTitle>
+                <p className="text-3xl font-semibold">{plan.price}</p>
+                <p className="text-sm text-white/60">{plan.description}</p>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-white/70">
+                {plan.features.map((feature) => (
+                  <div key={feature} className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-red-400" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+    </main>
   )
 }

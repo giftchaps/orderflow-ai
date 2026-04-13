@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Kitchen Display System',
-  description: 'Professional kitchen display system for restaurant order management',
+  title: 'OrderFlow AI',
+  description: 'AI ordering, kitchen display, and business tools for restaurants',
   generator: 'v0.app',
   icons: {
     icon: [
