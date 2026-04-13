@@ -19,7 +19,6 @@ export default function MarketingHomePage() {
           <nav className="hidden items-center gap-8 text-sm text-white/60 lg:flex">
             <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
             <a href="#operators" className="hover:text-white transition-colors">For operators</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <Link href="/login" className="hover:text-white transition-colors">Sign in</Link>
           </nav>
 
@@ -288,105 +287,6 @@ export default function MarketingHomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ── */}
-      <section id="pricing" className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">Pricing</p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple pricing. No setup fees. Cancel anytime.</h2>
-          </div>
-
-          <div className="grid gap-5 lg:grid-cols-3">
-            {[
-              {
-                name: "Starter",
-                price: "$49",
-                period: "/month",
-                description: "Perfect for a single location just getting started.",
-                features: [
-                  "Up to 150 orders/month",
-                  "Phone AI intake",
-                  "One kitchen display",
-                  "SMS notifications",
-                ],
-                cta: "Get started",
-                highlight: false,
-              },
-              {
-                name: "Growth",
-                price: "$99",
-                period: "/month",
-                description: "For busy restaurants that need everything working together.",
-                features: [
-                  "Unlimited orders",
-                  "All channels",
-                  "Analytics dashboard",
-                  "Order history",
-                  "Menu editor",
-                ],
-                cta: "Get started",
-                highlight: true,
-              },
-              {
-                name: "Pro",
-                price: "$149",
-                period: "/month",
-                description: "For operators running multiple locations from one account.",
-                features: [
-                  "Everything in Growth",
-                  "Multiple displays",
-                  "Multi-location",
-                  "Staff roles",
-                  "Priority support",
-                ],
-                cta: "Get started",
-                highlight: false,
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-2xl border p-7 flex flex-col ${
-                  plan.highlight
-                    ? "border-red-500/50 bg-red-600/8 ring-1 ring-red-500/30"
-                    : "border-white/10 bg-white/[0.03]"
-                }`}
-              >
-                {plan.highlight && (
-                  <p className="mb-4 w-fit rounded-full bg-red-600 px-3 py-0.5 text-xs font-semibold text-white">
-                    Most popular
-                  </p>
-                )}
-                <p className="text-lg font-semibold">{plan.name}</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">{plan.price}</span>
-                  <span className="text-white/50">{plan.period}</span>
-                </div>
-                <p className="mt-3 text-sm text-white/50">{plan.description}</p>
-                <ul className="mt-6 flex-1 space-y-3">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2.5 text-sm text-white/70">
-                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-red-500" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a href="#demo" className="mt-8 block">
-                  <button className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-colors ${
-                    plan.highlight
-                      ? "bg-red-600 text-white hover:bg-red-700"
-                      : "border border-white/15 text-white hover:bg-white/8"
-                  }`}>
-                    {plan.cta}
-                  </button>
-                </a>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-8 text-center text-sm text-white/40">No setup fee. Cancel anytime.</p>
         </div>
       </section>
 
