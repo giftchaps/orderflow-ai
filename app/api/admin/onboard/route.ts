@@ -14,6 +14,21 @@ export async function POST(req: NextRequest) {
 
     const supabase = createSupabaseServerClient()
 
+    // Prevent accidental duplicate submissions for the same business owner/name pair
+    const { data: existingBusiness } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("owner_email", normalizedOwnerEmail)
+      .ilike("name", name)
+      .maybeSingle()
+
+    if (existingBusiness) {
+      return NextResponse.json(
+        { error: "A business with this owner email and name already exists." },
+        { status: 409 }
+      )
+    }
+
     // Check slug is unique
     const { data: existing } = await supabase
       .from("businesses")
@@ -69,14 +84,27 @@ export async function POST(req: NextRequest) {
 
     if (inviteErr) {
       console.error("[admin/onboard] invite error:", inviteErr)
+
+      const msg = inviteErr.message.toLowerCase()
+      if (msg.includes("already") && (msg.includes("registered") || msg.includes("exists") || msg.includes("confirmed"))) {
+        return NextResponse.json({
+          ok: true,
+          business_id: biz.id,
+          invite_sent: false,
+          warning:
+            "Business created. Owner already has an account, so no new invite was sent. Ask them to sign in at /login.",
+        })
+      }
+
       return NextResponse.json({
         ok: true,
         business_id: biz.id,
+        invite_sent: false,
         warning: "Business created but invite failed: " + inviteErr.message,
       })
     }
 
-    return NextResponse.json({ ok: true, business_id: biz.id })
+    return NextResponse.json({ ok: true, business_id: biz.id, invite_sent: true })
   } catch (err: any) {
     console.error("[admin/onboard]", err)
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 })

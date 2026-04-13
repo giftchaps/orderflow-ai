@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type Props = {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ warning?: string }>
 }
 
-export default async function AdminBusinessDetailsPage({ params }: Props) {
+export default async function AdminBusinessDetailsPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const { warning } = await searchParams
   const supabase = createSupabaseServerClient()
 
   const { data: business, error } = await supabase
@@ -52,6 +54,11 @@ export default async function AdminBusinessDetailsPage({ params }: Props) {
           <CardTitle>Business Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
+          {warning ? (
+            <div className="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2">
+              {warning}
+            </div>
+          ) : null}
           <p><span className="text-muted-foreground">Owner Email:</span> {business.owner_email ?? "-"}</p>
           <p><span className="text-muted-foreground">Timezone:</span> {business.timezone ?? "-"}</p>
           <p><span className="text-muted-foreground">Address:</span> {business.address ?? "-"}</p>

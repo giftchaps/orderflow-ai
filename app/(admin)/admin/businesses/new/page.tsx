@@ -79,7 +79,10 @@ export default function OnboardBusinessPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? data.message ?? "Failed to create business")
-      router.push(`/admin/businesses/${form.slug}`)
+      const warningQuery = data.warning
+        ? `?warning=${encodeURIComponent(data.warning)}`
+        : ""
+      router.push(`/admin/businesses/${form.slug}${warningQuery}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")
       setLoading(false)
