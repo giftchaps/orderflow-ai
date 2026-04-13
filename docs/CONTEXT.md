@@ -61,7 +61,7 @@ Kitchen Display (Vercel)
 - Agent fires webhook to server URL on call end
 
 ### Supabase Database ✅
-- Project URL: `https://mvrjmpituoybwxpjnb.supabase.co`
+- Project URL: `https://rnvrjlmpltuoybwxpjnb.supabase.co`
 - Tables created: `businesses`, `orders`
 - Realtime enabled on orders table
 - Provenzano's Deli seeded as first business in businesses table
@@ -141,7 +141,7 @@ python-dotenv
 
 ### File: `backend/.env` (never commit this)
 ```
-SUPABASE_URL=https://mvrjmpituoybwxpjnb.supabase.co
+SUPABASE_URL=https://rnvrjlmpltuoybwxpjnb.supabase.co
 SUPABASE_SERVICE_KEY=your_service_role_key
 OPENAI_API_KEY=your_openai_key
 BUSINESS_ID=uuid_from_businesses_table
@@ -250,7 +250,7 @@ orderflow-ai/
 |------|-------|
 | Vapi Assistant ID | 9ffca22f-e465-4ffc-a7f6-95ba796ac7f8 |
 | Vapi Phone Number | +1 (216) 777 6065 |
-| Supabase URL | https://mvrjmpituoybwxpjnb.supabase.co |
+| Supabase URL | https://rnvrjlmpltuoybwxpjnb.supabase.co |
 | Kitchen Display | https://v0-orderflow-ai.vercel.app |
 | GitHub Repo | https://github.com/giftchaps/orderflow-ai |
 | n8n (being replaced) | resurgextech.app.n8n.cloud |

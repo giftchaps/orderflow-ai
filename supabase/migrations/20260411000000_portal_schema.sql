@@ -12,6 +12,7 @@
 CREATE TABLE IF NOT EXISTS businesses (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name                TEXT NOT NULL,
+  
   slug                TEXT UNIQUE,
   is_active           BOOLEAN NOT NULL DEFAULT TRUE,
   plan                TEXT NOT NULL DEFAULT 'starter',
