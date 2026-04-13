@@ -1,346 +1,351 @@
-import Link from "next/link"
-import { PhoneCall, CheckCircle2, ChevronRight } from "lucide-react"
-import { DemoRequestForm } from "@/components/marketing/demo-request-form"
+"use client"
 
-export default function MarketingHomePage() {
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ArrowRight, Check, Play, Phone, ChefHat, MessageSquare, BarChart3, Clock, MapPin, Menu, X } from "lucide-react"
+
+export default function OrderFlowLanding() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
-    <main className="min-h-screen bg-[#080808] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            <span className="text-xl font-medium tracking-tight text-foreground">OrderFlow</span>
 
-      {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-white/8 bg-[#080808]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600">
-              <PhoneCall className="h-4 w-4 text-white" />
+            <div className="hidden md:flex items-center gap-10">
+              <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How it works</a>
+              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
+              <a href="#demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Demo</a>
             </div>
-            <span className="text-base font-semibold tracking-tight">OrderFlow AI</span>
-          </div>
 
-          <nav className="hidden items-center gap-8 text-sm text-white/60 lg:flex">
-            <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
-            <a href="#operators" className="hover:text-white transition-colors">For operators</a>
-            <Link href="/login" className="hover:text-white transition-colors">Sign in</Link>
-          </nav>
-
-          <a href="#demo">
-            <button className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">
+            <Button className="hidden md:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6">
               Book a demo
+            </Button>
+
+            <button
+              className="md:hidden p-2 text-foreground"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-          </a>
-        </div>
-      </header>
-
-      {/* ── Hero ── */}
-      <section className="relative border-b border-white/8">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(220,38,38,0.15),transparent_60%)]" />
-        <div className="relative mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/60 mb-8">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-            Live at Provenzano&apos;s Deli, West Haven CT
           </div>
+        </div>
 
-          <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-            Your phone answers itself.{" "}
-            <span className="text-red-500">Your kitchen gets the order.</span>
-          </h1>
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-background border-t border-border px-6 py-6 space-y-4">
+            <a href="#how-it-works" className="block text-foreground">How it works</a>
+            <a href="#features" className="block text-foreground">Features</a>
+            <a href="#demo" className="block text-foreground">Demo</a>
+            <Button className="w-full bg-primary text-primary-foreground rounded-full mt-4">Book a demo</Button>
+          </div>
+        )}
+      </nav>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/60 sm:text-xl">
-            OrderFlow AI picks up every inbound call, captures the full order including all customizations, and sends a live ticket to your kitchen display — in under 10 seconds. No missed calls, no wrong orders, no staff pulled off the line.
+      {/* Hero */}
+      <section className="pt-40 pb-24 px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-8">
+            Voice AI for restaurants
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <a href="#demo-flow">
-              <button className="rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
-                See it live
-              </button>
-            </a>
-            <a href="#demo">
-              <button className="rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10 transition-colors">
-                Book a walkthrough
-              </button>
-            </a>
+          <h1 className="font-serif text-5xl sm:text-6xl lg:text-8xl leading-[1.1] tracking-tight mb-8 text-balance">
+            The phone rings.
+            <br />
+            <span className="italic">You don&apos;t answer.</span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
+            OrderFlow answers every call, captures the order perfectly,
+            and sends it to your kitchen — automatically. Finally, focus on the food.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 h-14 text-base">
+              Request access
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button size="lg" variant="ghost" className="text-foreground hover:bg-muted rounded-full px-8 h-14 text-base group">
+              <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+              Watch it work
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* ── Stats ── */}
-      <section className="border-b border-white/8 bg-white/[0.02]">
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-10">
-          <div className="grid grid-cols-1 gap-px bg-white/8 sm:grid-cols-3">
-            {[
-              { value: "24/7", label: "Calls answered without a human" },
-              { value: "< 10 sec", label: "From call end to kitchen display" },
-              { value: "Zero", label: "Extra staff required" },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-[#080808] px-8 py-10 text-center sm:text-left">
-                <p className="text-4xl font-bold text-white">{stat.value}</p>
-                <p className="mt-2 text-sm text-white/50">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Live Demo Flow ── */}
-      <section id="demo-flow" className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">Real order. Real result.</p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From call to kitchen in one flow.</h2>
-            <p className="mt-4 text-base text-white/55">This is an actual order taken at Provenzano&apos;s Deli. No editing, no demo mode.</p>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Conversation */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-2">The call</p>
-
-              <div className="flex gap-3">
-                <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-red-600/20 text-xs font-bold text-red-400">AI</div>
-                <div className="rounded-2xl rounded-tl-sm bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/80">
-                  &ldquo;Thank you for calling Provenzano&apos;s Deli, what can I get for you today?&rdquo;
-                </div>
-              </div>
-
-              <div className="flex gap-3 flex-row-reverse">
-                <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white/60">C</div>
-                <div className="rounded-2xl rounded-tr-sm bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white/70">
-                  &ldquo;Two Michelangelos, one on a 12 inch, no cherry peppers, extra provolone. And a chicken parm on a hard roll.&rdquo;
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-red-600/20 text-xs font-bold text-red-400">AI</div>
-                <div className="rounded-2xl rounded-tl-sm bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/80">
-                  &ldquo;Got it — two Michelangelos on a 12 inch, no cherry peppers, extra provolone. One chicken parm on a hard roll. Your order number is 47. We&apos;ll have it ready in about 15 minutes. Thanks!&rdquo;
-                </div>
-              </div>
-
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-2.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                <span className="text-xs text-green-300">Order confirmed and sent to kitchen in 8 seconds</span>
-              </div>
+      {/* Social proof */}
+      <section className="py-16 px-6 lg:px-8 border-y border-border">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-20 text-center">
+            <div>
+              <div className="text-4xl font-serif text-foreground mb-1">200+</div>
+              <p className="text-sm text-muted-foreground">restaurants live</p>
             </div>
-
-            {/* Kitchen ticket */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-4">Kitchen display ticket</p>
-              <div className="rounded-xl border border-white/10 bg-[#0d0d0d] p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-white/8 pb-4">
-                  <div>
-                    <span className="text-xs text-white/40">Order</span>
-                    <p className="text-2xl font-bold">#47</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="rounded-full bg-yellow-500/15 px-3 py-1 text-xs font-semibold text-yellow-400">New</span>
-                    <p className="mt-1 text-xs text-white/40">Just now · (203) 555-0147</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
-                    <p className="text-sm font-semibold">Michelangelo ×2</p>
-                    <p className="text-xs text-white/50 mt-1">12 inch sub &nbsp;·&nbsp; <span className="text-red-400">− cherry peppers</span> &nbsp;·&nbsp; <span className="text-green-400">+ extra provolone</span></p>
-                  </div>
-                  <div className="rounded-lg border border-white/8 bg-white/[0.03] p-3">
-                    <p className="text-sm font-semibold">Chicken Parm ×1</p>
-                    <p className="text-xs text-white/50 mt-1">Hard roll</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 pt-2">
-                  {["Accept", "Making", "Ready"].map((action, i) => (
-                    <button key={action} className={`rounded-lg py-2 text-xs font-semibold transition-colors ${i === 0 ? "bg-red-600 text-white" : "border border-white/10 text-white/40"}`}>
-                      {action}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="hidden md:block w-px h-12 bg-border" />
+            <div>
+              <div className="text-4xl font-serif text-foreground mb-1">50,000</div>
+              <p className="text-sm text-muted-foreground">orders this month</p>
+            </div>
+            <div className="hidden md:block w-px h-12 bg-border" />
+            <div>
+              <div className="text-4xl font-serif text-foreground mb-1">8 sec</div>
+              <p className="text-sm text-muted-foreground">avg. to kitchen</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── How It Works ── */}
-      <section id="how-it-works" className="border-b border-white/8 bg-white/[0.02]">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">How it works</p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Four steps. No new hardware. No training.</h2>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                step: "01",
-                title: "Answer",
-                body: "The AI picks up and greets the caller by your business name. Sounds natural, not robotic.",
-              },
-              {
-                step: "02",
-                title: "Capture",
-                body: "Takes down every item, bread choice, modification, and special request. Confirms the full order back to the customer before ending the call.",
-              },
-              {
-                step: "03",
-                title: "Execute",
-                body: "A clean structured order ticket appears on your kitchen display instantly. Staff see the order number, items, and every modification clearly.",
-              },
-              {
-                step: "04",
-                title: "Notify",
-                body: "The customer gets an automatic SMS confirming their order. When staff mark it done, the customer gets another SMS that it's ready for pickup.",
-              },
-            ].map((item) => (
-              <div key={item.step} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <p className="text-4xl font-bold text-white/10">{item.step}</p>
-                <p className="mt-4 text-lg font-semibold">{item.title}</p>
-                <p className="mt-2 text-sm leading-6 text-white/55">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">What's included</p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything you need. Nothing you don't.</h2>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                title: "Voice AI call intake",
-                body: "Handles your full menu including combos, modifiers, and substitutions in natural conversation. No scripts, no keypad menus, no hold music.",
-              },
-              {
-                title: "Live kitchen display",
-                body: "Orders appear on screen in under 10 seconds. Staff work a New, Making, Ready board — one tap to update each order's status.",
-              },
-              {
-                title: "Customer SMS notifications",
-                body: "Automatic text when the order is received and another when it's ready for pickup. Reduces the callback calls.",
-              },
-              {
-                title: "Menu management portal",
-                body: "Upload a photo of your menu. The AI extracts every item, price, and modifier automatically. Review, edit, and go live in under 30 minutes.",
-              },
-              {
-                title: "Order history and analytics",
-                body: "Full searchable record of every order. See your busiest hours, most ordered items, and average fulfillment time.",
-              },
-              {
-                title: "Multi-location support",
-                body: "Each location gets its own phone number, kitchen display, and menu. All managed from one operator account.",
-              },
-            ].map((feature) => (
-              <div key={feature.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
-                  <div>
-                    <p className="font-semibold">{feature.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-white/55">{feature.body}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Who It's For ── */}
-      <section id="operators" className="border-b border-white/8 bg-white/[0.02]">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="mb-12 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-red-500 mb-3">For operators</p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Built for restaurants where the phone never stops.</h2>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            {[
-              {
-                title: "Delis and sub shops",
-                body: "High modifier volume, complex customizations, and a lunch rush that overwhelms the counter. This is exactly the business we built for first.",
-              },
-              {
-                title: "Pizza and takeout counters",
-                body: "Custom orders, repeat customers, and a team that cannot be answering phones while making food.",
-              },
-              {
-                title: "Bakeries and specialty shops",
-                body: "Custom orders placed in advance with specific details that cannot be written down wrong. AI captures and stores everything.",
-              },
-              {
-                title: "Growing operators",
-                body: "Running more than one location and tired of each one having a different broken system for phone orders.",
-              },
-            ].map((item) => (
-              <div key={item.title} className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <ChevronRight className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
-                <div>
-                  <p className="font-semibold">{item.title}</p>
-                  <p className="mt-1.5 text-sm leading-6 text-white/55">{item.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Demo / CTA ── */}
-      <section id="demo" className="border-b border-white/8 bg-white/[0.02]">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr]">
-            <div className="space-y-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-red-500">Book a walkthrough</p>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Bring your menu and your rush hour.</h2>
-              <p className="text-base leading-7 text-white/55">
-                We'll walk you through how OrderFlow AI handles your specific menu, your order volume, and your team's workflow. Takes 20 minutes. No commitment.
+      {/* Problem / Solution */}
+      <section className="py-32 px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            <div>
+              <p className="text-sm uppercase tracking-[0.15em] text-accent mb-6">The problem</p>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight mb-6 text-balance">
+                Every ring is a choice: answer the phone or make the food.
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                During rush hour, your best cook is also your phone operator.
+                Orders get missed, details get lost, and customers wait longer.
+                It&apos;s been this way forever — but it doesn&apos;t have to be.
               </p>
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                {[
-                  "We review your restaurant type, current order volume, and workflow.",
-                  "We show how voice AI, kitchen display, and the business portal fit together.",
-                  "We map the right rollout path for one location or multiple businesses.",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3">
-                    <ChevronRight className="mt-1 h-4 w-4 flex-shrink-0 text-red-500" />
-                    <p className="text-sm leading-6 text-white/60">{item}</p>
-                  </div>
-                ))}
-              </div>
-              <Link href="/login" className="inline-block">
-                <button className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors">
-                  Existing customer sign in
-                </button>
-              </Link>
             </div>
-            <DemoRequestForm />
+            <div className="bg-muted rounded-2xl p-8 lg:p-12">
+              <p className="text-sm uppercase tracking-[0.15em] text-accent mb-6">The solution</p>
+              <h3 className="font-serif text-2xl sm:text-3xl leading-tight mb-6">
+                AI that sounds human, captures everything, and never gets flustered.
+              </h3>
+              <ul className="space-y-4">
+                {[
+                  "Answers in your restaurant's voice",
+                  "Understands complex modifications",
+                  "Confirms before hanging up",
+                  "Sends order to kitchen instantly",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                    <span className="text-foreground">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-600">
-              <PhoneCall className="h-3.5 w-3.5 text-white" />
+      {/* Demo */}
+      <section id="demo" className="py-32 px-6 lg:px-8 bg-secondary">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.15em] text-accent mb-4">See it in action</p>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight text-balance">
+              A real order, captured in real time.
+            </h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div className="bg-card rounded-2xl border border-border p-8">
+              <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-8">The call</p>
+
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-medium text-accent">AI</span>
+                  </div>
+                  <div className="bg-muted rounded-2xl rounded-tl-sm px-5 py-4 text-sm">
+                    {`"Good afternoon, Provenzano's Deli. What can I get started for you?"`}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 justify-end">
+                  <div className="bg-foreground/5 rounded-2xl rounded-tr-sm px-5 py-4 text-sm text-muted-foreground max-w-[85%]">
+                    {`"Yeah, let me get two Michelangelos — one on a 12 inch, no cherry peppers, extra provolone. And a chicken parm on a hard roll."`}
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-medium text-muted-foreground">C</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-medium text-accent">AI</span>
+                  </div>
+                  <div className="bg-muted rounded-2xl rounded-tl-sm px-5 py-4 text-sm">
+                    {`"Perfect — two Michelangelos, one 12 inch with no cherry peppers and extra provolone, and one chicken parm on a hard roll. That'll be about 15 minutes. See you soon!"`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-border">
+                <div className="flex items-center gap-2 text-sm text-accent">
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  Order sent to kitchen in 6 seconds
+                </div>
+              </div>
             </div>
-            <span className="text-sm font-semibold">OrderFlow AI</span>
-            <span className="text-sm text-white/30">· Built by ResurgeX Technologies · © 2026</span>
+
+            <div className="bg-card rounded-2xl border border-border p-8">
+              <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-8">Kitchen ticket</p>
+
+              <div className="mb-8">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-5xl font-serif text-foreground">#47</span>
+                  <span className="text-xs uppercase tracking-wider text-accent bg-accent/10 px-3 py-1 rounded-full">New</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Just now · (203) 555-0147</p>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div className="bg-muted rounded-xl p-5">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="font-medium text-foreground">Michelangelo</span>
+                    <span className="text-sm text-muted-foreground">×2</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    12 inch · <span className="text-accent">no cherry peppers</span> · <span className="text-accent">extra provolone</span>
+                  </p>
+                </div>
+                <div className="bg-muted rounded-xl p-5">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="font-medium text-foreground">Chicken Parm</span>
+                    <span className="text-sm text-muted-foreground">×1</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Hard roll</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl h-12">Accept</Button>
+                <Button variant="outline" className="border-border rounded-xl h-12">Making</Button>
+                <Button variant="outline" className="border-border rounded-xl h-12">Ready</Button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-6 text-sm text-white/40">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="mailto:hello@resurgex.ai" className="hover:text-white transition-colors">Contact</a>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how-it-works" className="py-32 px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-20">
+            <p className="text-sm uppercase tracking-[0.15em] text-accent mb-4">How it works</p>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight text-balance">
+              Four steps. No hardware. No training.
+            </h2>
           </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { num: "1", title: "Answer", desc: "AI picks up, greets callers with your restaurant name. Natural, warm, never robotic." },
+              { num: "2", title: "Capture", desc: "Takes down every item and modification. Reads it back. Confirms before ending." },
+              { num: "3", title: "Execute", desc: "Structured ticket appears on your kitchen display instantly. Clear, organized, complete." },
+              { num: "4", title: "Notify", desc: "Customer gets a text when it's ready. No callbacks, no confusion." },
+            ].map((step, i) => (
+              <div key={i} className="text-center lg:text-left">
+                <div className="font-serif text-6xl text-muted-foreground/30 mb-4">{step.num}</div>
+                <h3 className="text-xl font-medium text-foreground mb-3">{step.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="py-32 px-6 lg:px-8 bg-secondary">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-20">
+            <p className="text-sm uppercase tracking-[0.15em] text-accent mb-4">Everything included</p>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight text-balance">
+              Built for busy kitchens.
+            </h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { icon: Phone, title: "Voice AI", desc: "Handles your full menu — combos, mods, substitutions. No scripts, no hold music." },
+              { icon: ChefHat, title: "Kitchen display", desc: "Orders appear in seconds. Tap to update: New → Making → Ready." },
+              { icon: MessageSquare, title: "SMS notifications", desc: "Customers get a text when the order is received and when it's ready." },
+              { icon: Clock, title: "Menu portal", desc: "Upload your menu. AI extracts items and prices. Go live in 30 minutes." },
+              { icon: BarChart3, title: "Analytics", desc: "See busy hours, popular items, fulfillment times. Data that helps you run better." },
+              { icon: MapPin, title: "Multi-location", desc: "Each location gets its own number, display, and menu. One dashboard." },
+            ].map((feature, i) => (
+              <div key={i} className="bg-card rounded-2xl border border-border p-8 hover:border-accent/30 transition-colors">
+                <feature.icon className="w-6 h-6 text-accent mb-5" strokeWidth={1.5} />
+                <h3 className="text-lg font-medium text-foreground mb-2">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Who it's for */}
+      <section className="py-32 px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-sm uppercase tracking-[0.15em] text-accent mb-4">Built for</p>
+          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight mb-16 text-balance">
+            Restaurants where the phone never stops.
+          </h2>
+
+          <div className="grid sm:grid-cols-2 gap-6 text-left">
+            {[
+              { name: "Delis & sub shops", desc: "High volume, complex customizations, lunchtime chaos." },
+              { name: "Pizza counters", desc: "Repeat orders, busy nights, hands covered in dough." },
+              { name: "Bakeries", desc: "Custom orders, advance scheduling, zero room for error." },
+              { name: "Multi-location operators", desc: "One system across every location, finally." },
+            ].map((type, i) => (
+              <div key={i} className="bg-muted rounded-2xl p-6">
+                <h3 className="font-medium text-foreground mb-1">{type.name}</h3>
+                <p className="text-sm text-muted-foreground">{type.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-32 px-6 lg:px-8 bg-primary text-primary-foreground">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight mb-6 text-balance">
+            Ready to stop answering the phone?
+          </h2>
+          <p className="text-lg opacity-80 mb-10 max-w-xl mx-auto">
+            We&apos;ll walk you through how OrderFlow handles your menu, your volume, and your workflow. Takes 20 minutes.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+            <Input
+              placeholder="Your email"
+              className="h-14 px-6 rounded-full bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 w-full sm:w-80"
+            />
+            <Button size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 rounded-full px-8 h-14 w-full sm:w-auto">
+              Request access
+            </Button>
+          </div>
+
+          <p className="text-sm opacity-60">
+            Already a customer?{" "}
+            <a href="/login" className="underline hover:opacity-100">Sign in</a>
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 lg:px-8 border-t border-border">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+          <span className="text-lg font-medium text-foreground">OrderFlow</span>
+          <div className="flex items-center gap-8 text-sm text-muted-foreground">
+            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+            <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+          </div>
+          <p className="text-sm text-muted-foreground">© 2026</p>
         </div>
       </footer>
-
-    </main>
+    </div>
   )
 }
