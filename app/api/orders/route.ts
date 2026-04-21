@@ -32,12 +32,17 @@ const createOrderBodySchema = z.object({
   specialInstructions: z.string().nullable().optional(),
 })
 
+const SLUG_RE = /^[a-z0-9-]{1,80}$/
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const slug = searchParams.get("slug")
 
   // If a slug is provided, resolve the business by slug
   if (slug) {
+    if (!SLUG_RE.test(slug)) {
+      return NextResponse.json({ ok: false, message: "Invalid slug." }, { status: 400 })
+    }
     try {
       const supabase = createSupabaseServerClient()
       const { data: business, error: bizError } = await supabase

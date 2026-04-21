@@ -4,10 +4,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
+const SLUG_RE = /^[a-z0-9-]{1,80}$/
+
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug")
 
   if (slug) {
+    if (!SLUG_RE.test(slug)) {
+      return NextResponse.json({ error: "Invalid slug." }, { status: 400 })
+    }
     const supabase = createSupabaseServerClient()
     const { data } = await supabase
       .from("businesses")

@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getServerEnvIssues } from "@/lib/env"
 import { updateOrderStatus } from "@/lib/orders"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getUserRole } from "@/lib/auth/get-user-role"
 
 export const dynamic = "force-dynamic"
 
@@ -38,6 +39,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
+  const callerRole = await getUserRole()
+  if (!callerRole?.business_id) {
+    return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
+  }
+
   const envIssues = getServerEnvIssues()
 
   if (envIssues.length > 0) {
@@ -53,6 +59,19 @@ export async function PATCH(
 
   try {
     const { orderId } = await params
+
+    // Verify the order belongs to the caller's business
+    if (!callerRole.is_super_admin) {
+      const supabase = createSupabaseServerClient()
+      const { data: order } = await supabase
+        .from("orders")
+        .select("business_id")
+        .eq("id", orderId)
+        .maybeSingle()
+      if (!order || order.business_id !== callerRole.business_id) {
+        return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 })
+      }
+    }
     const body = bodySchema.parse(await request.json())
 
     await updateOrderStatus(orderId, body.status)

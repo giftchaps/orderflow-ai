@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
+import { getUserRole } from "@/lib/auth/get-user-role"
 
 export async function POST(req: NextRequest) {
+  const callerRole = await getUserRole()
+  if (!callerRole?.business_id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   try {
     const formData = await req.formData()

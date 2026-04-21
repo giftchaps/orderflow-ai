@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getUserRole } from "@/lib/auth/get-user-role"
 
 function buildSystemPrompt(businessName: string, menu: any): string {
   const categories = menu?.categories ?? []
@@ -41,10 +42,19 @@ Rules:
 }
 
 export async function PUT(req: NextRequest) {
+  const callerRole = await getUserRole()
+  if (!callerRole) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const { business_id, menu } = await req.json()
     if (!business_id || !menu) {
       return NextResponse.json({ error: "business_id and menu are required" }, { status: 400 })
+    }
+
+    if (!callerRole.is_super_admin && callerRole.business_id !== business_id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const supabase = createSupabaseServerClient()

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
 import { getServerEnvIssues, getServerEnv } from "@/lib/env"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getUserRole } from "@/lib/auth/get-user-role"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
+  const role = await getUserRole()
+  if (!role?.is_super_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
   const issues = getServerEnvIssues()
 
   if (issues.length > 0) {

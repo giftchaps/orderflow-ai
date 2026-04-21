@@ -1,5 +1,7 @@
 import os
 import json
+import hmac
+import hashlib
 import logging
 import requests
 from dotenv import load_dotenv
@@ -23,6 +25,7 @@ TELNYX_API_KEY = os.environ["TELNYX_API_KEY"]
 TELNYX_FROM_NUMBER = os.environ["TELNYX_FROM_NUMBER"]
 BUSINESS_NAME = os.environ.get("ORDERFLOW_BUSINESS_NAME", "the restaurant")
 BUSINESS_PHONE = os.environ.get("ORDERFLOW_BUSINESS_PHONE", "")
+VAPI_WEBHOOK_SECRET = os.environ.get("VAPI_WEBHOOK_SECRET", "")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
@@ -135,10 +138,27 @@ def extract_order_items(transcript: str) -> list:
 
 @app.post("/webhook/vapi")
 async def vapi_webhook(request: Request):
-    try:
-        body = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    # Verify Vapi webhook signature if secret is configured
+    if VAPI_WEBHOOK_SECRET:
+        raw_body = await request.body()
+        signature = request.headers.get("x-vapi-secret", "")
+        expected = hmac.new(
+            VAPI_WEBHOOK_SECRET.encode(),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            logger.warning("Invalid Vapi webhook signature — request rejected")
+            raise HTTPException(status_code=401, detail="Invalid signature")
+        try:
+            body = json.loads(raw_body)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+    else:
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
 
     message = body.get("message", {})
     event_type = message.get("type")

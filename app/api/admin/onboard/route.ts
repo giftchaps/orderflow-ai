@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { normalizeEmail } from "@/lib/auth/normalize-email"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getUserRole } from "@/lib/auth/get-user-role"
 
 export async function POST(req: NextRequest) {
+  // Only super admins can onboard new businesses
+  const role = await getUserRole()
+  if (!role?.is_super_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   try {
     const body = await req.json()
     const { name, slug, address, timezone, prep_time_minutes, owner_name, owner_email, plan, menu } = body
