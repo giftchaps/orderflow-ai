@@ -4,13 +4,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getUserRole } from "@/lib/auth/get-user-role"
 
 export async function POST(req: NextRequest) {
-  const role = await getUserRole()
-  if (!role?.is_super_admin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
   const { email, business_id } = await req.json()
   const normalizedEmail = normalizeEmail(email)
+
+  const role = await getUserRole()
+
+  // require either super admin, or an owner/manager for the target business
+  const allowedForBusiness =
+    role && role.business_id && role.business_id === business_id && (role.role === "owner" || role.role === "manager")
+
+  if (!role || (!role.is_super_admin && !allowedForBusiness)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   if (!normalizedEmail || !business_id) {
     return NextResponse.json({ error: "email and business_id are required" }, { status: 400 })

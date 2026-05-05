@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from "@supabase/supabase-js"
-import { createHmac } from "crypto"
+import { signDisplayToken } from "@/lib/kds-token"
 
 export const dynamic = "force-dynamic"
 
 const SLUG_RE = /^[a-z0-9-]{1,80}$/
-const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 const bodySchema = z.object({
   pin: z.string().max(8),
@@ -17,31 +16,6 @@ function getSupabase() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new Error("Supabase not configured")
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-}
-
-function signToken(slug: string): string {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "fallback"
-  const exp = Date.now() + TOKEN_TTL_MS
-  const payload = `${slug}:${exp}`
-  const sig = createHmac("sha256", secret).update(payload).digest("hex")
-  return Buffer.from(`${payload}:${sig}`).toString("base64url")
-}
-
-export function verifyDisplayToken(slug: string, token: string): boolean {
-  try {
-    const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "fallback"
-    const decoded = Buffer.from(token, "base64url").toString("utf8")
-    const parts = decoded.split(":")
-    if (parts.length !== 3) return false
-    const [tokenSlug, expStr, sig] = parts
-    if (tokenSlug !== slug) return false
-    const exp = Number(expStr)
-    if (isNaN(exp) || Date.now() > exp) return false
-    const expected = createHmac("sha256", secret).update(`${tokenSlug}:${expStr}`).digest("hex")
-    return sig === expected
-  } catch {
-    return false
-  }
 }
 
 export async function POST(
@@ -80,12 +54,12 @@ export async function POST(
 
   // If no PIN is set, allow access freely
   if (!business.display_pin) {
-    return NextResponse.json({ ok: true, token: signToken(slug) })
+    return NextResponse.json({ ok: true, token: signDisplayToken(slug) })
   }
 
   if (!body.pin || body.pin !== business.display_pin) {
     return NextResponse.json({ ok: false, message: "Incorrect PIN." }, { status: 401 })
   }
 
-  return NextResponse.json({ ok: true, token: signToken(slug) })
+  return NextResponse.json({ ok: true, token: signDisplayToken(slug) })
 }

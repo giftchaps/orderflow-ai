@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ResendInviteButton } from "./resend-invite-button"
+import { BusinessOperationsPanel } from "./business-operations-panel"
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -18,7 +18,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
 
   const { data: business, error } = await supabase
     .from("businesses")
-    .select("id, name, slug, address, timezone, owner_email, plan, is_active, created_at")
+    .select("id, name, slug, address, timezone, owner_email, plan, is_active, display_pin, created_at")
     .eq("slug", slug)
     .maybeSingle()
 
@@ -27,7 +27,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
 
   const { data: staff } = await supabase
     .from("businesses_staff")
-    .select("id, email, role, user_id")
+    .select("id, email, role, user_id, name")
     .eq("business_id", business.id)
 
   const ownerStaff = staff?.find((s) => s.role === "owner")
@@ -74,18 +74,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
         </CardContent>
       </Card>
 
-      {/* Owner invite actions */}
-      {business.owner_email && !ownerLinked && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="pt-5 space-y-3">
-            <p className="text-sm text-amber-300 font-medium">Owner has not accepted their invite yet.</p>
-            <p className="text-sm text-muted-foreground">
-              Send a new invite email to <span className="font-medium text-foreground">{business.owner_email}</span> so they can set a password and access their portal.
-            </p>
-            <ResendInviteButton email={business.owner_email} businessId={business.id} />
-          </CardContent>
-        </Card>
-      )}
+      <BusinessOperationsPanel business={business} staff={staff ?? []} />
 
       <div className="flex gap-2">
         <Link href="/admin/businesses">

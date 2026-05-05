@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getServerEnv, getServerEnvIssues } from "@/lib/env"
 import { orderSchema, listActiveOrders } from "@/lib/orders"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient, createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, message: "Invalid slug." }, { status: 400 })
     }
     try {
-      const supabase = createSupabaseServerClient()
+      const supabase = createSupabaseServerClientFromEnv()
       const { data: business, error: bizError } = await supabase
         .from("businesses")
         .select("id")

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getServerEnvIssues } from "@/lib/env"
 import { updateOrderStatus } from "@/lib/orders"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
 import { getUserRole } from "@/lib/auth/get-user-role"
+import { verifyDisplayToken } from "@/lib/kds-token"
 
 export const dynamic = "force-dynamic"
 
@@ -43,11 +43,13 @@ export async function PATCH(
 ) {
   const { searchParams } = new URL(request.url)
   const slug = searchParams.get("slug")
+  const displayToken = request.headers.get("x-kds-token")
 
   const callerRole = await getUserRole()
 
-  // Resolve business_id: prefer authenticated session, fall back to slug
+  // Resolve business_id: prefer authenticated session, otherwise require a valid display token.
   let resolvedBusinessId: string | null = null
+  let hasDisplayAccess = false
 
   if (callerRole?.business_id) {
     resolvedBusinessId = callerRole.business_id
@@ -55,7 +57,12 @@ export async function PATCH(
     if (!SLUG_RE.test(slug)) {
       return NextResponse.json({ ok: false, message: "Invalid slug." }, { status: 400 })
     }
-    const supabase = createSupabaseServerClient()
+    hasDisplayAccess = !!displayToken && verifyDisplayToken(slug, displayToken)
+    if (!callerRole?.is_super_admin && !hasDisplayAccess) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
+    }
+
+    const supabase = createSupabaseServerClientFromEnv()
     const { data: business } = await supabase
       .from("businesses")
       .select("id")
@@ -68,25 +75,12 @@ export async function PATCH(
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
   }
 
-  const envIssues = getServerEnvIssues()
-
-  if (envIssues.length > 0) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "Server environment is not configured.",
-        issues: envIssues,
-      },
-      { status: 500 }
-    )
-  }
-
   try {
     const { orderId } = await params
 
     // Verify the order belongs to the resolved business
     if (!callerRole?.is_super_admin) {
-      const supabase = createSupabaseServerClient()
+      const supabase = createSupabaseServerClientFromEnv()
       const { data: order } = await supabase
         .from("orders")
         .select("business_id")
@@ -102,7 +96,7 @@ export async function PATCH(
 
     // Send SMS when order is marked ready
     if (body.status === "ready") {
-      const supabase = createSupabaseServerClient()
+      const supabase = createSupabaseServerClientFromEnv()
       const { data: order } = await supabase
         .from("orders")
         .select("customer_phone, order_number")

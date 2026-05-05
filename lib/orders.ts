@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient, createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
 import { getServerEnv } from "@/lib/env"
 
 const orderItemModSchema = z.object({
@@ -59,7 +59,7 @@ export async function listActiveOrders(): Promise<Order[]> {
 }
 
 export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus, businessId?: string) {
-  const supabase = createSupabaseServerClient()
+  const supabase = businessId ? createSupabaseServerClientFromEnv() : createSupabaseServerClient()
   const resolvedBusinessId = businessId ?? getServerEnv().ORDERFLOW_BUSINESS_ID
 
   const { data: existingOrder, error: existingOrderError } = await supabase

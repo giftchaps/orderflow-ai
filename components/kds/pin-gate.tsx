@@ -4,6 +4,10 @@ import { useEffect, useState } from "react"
 
 const TOKEN_KEY = (slug: string) => `kds_token_${slug}`
 
+export function getDisplayToken(slug: string): string | null {
+  return localStorage.getItem(TOKEN_KEY(slug))
+}
+
 async function verifyPin(slug: string, pin: string): Promise<string | null> {
   const res = await fetch(`/api/display/${encodeURIComponent(slug)}/verify-pin`, {
     method: "POST",
@@ -66,6 +70,10 @@ export function PinGate({ slug, onUnlock }: PinGateProps) {
   const [pin, setPin] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [resetEmail, setResetEmail] = useState("")
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetMessage, setResetMessage] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -80,6 +88,33 @@ export function PinGate({ slug, onUnlock }: PinGateProps) {
     } else {
       setError("Incorrect PIN. Try again.")
       setPin("")
+    }
+  }
+
+  const handleReset = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setResetLoading(true)
+    setResetMessage(null)
+
+    try {
+      const res = await fetch(`/api/display/${encodeURIComponent(slug)}/request-pin-reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      })
+      const data = (await res.json()) as { ok: boolean; message?: string }
+
+      if (!res.ok || !data.ok) {
+        setResetMessage(data.message ?? "Unable to request a reset right now.")
+        return
+      }
+
+      setResetMessage("If that email can manage this business, a secure reset link has been sent.")
+      setResetEmail("")
+    } catch {
+      setResetMessage("Unable to request a reset right now.")
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -110,6 +145,60 @@ export function PinGate({ slug, onUnlock }: PinGateProps) {
             {loading ? "Checking..." : "Unlock"}
           </button>
         </form>
+        <div className="border-t border-border pt-4">
+          {!showReset ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowReset(true)
+                setResetMessage(null)
+              }}
+              className="w-full text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Forgot PIN?
+            </button>
+          ) : (
+            <form onSubmit={handleReset} className="space-y-3">
+              <div className="space-y-1 text-center">
+                <p className="text-sm font-medium">Reset kitchen PIN</p>
+                <p className="text-xs text-muted-foreground">
+                  Enter an owner or manager email for this business.
+                </p>
+              </div>
+              <input
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="owner@example.com"
+                required
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReset(false)
+                    setResetMessage(null)
+                    setResetEmail("")
+                  }}
+                  className="rounded-md border border-border px-3 py-2 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetLoading || !resetEmail}
+                  className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {resetLoading ? "Sending..." : "Send Link"}
+                </button>
+              </div>
+              {resetMessage && (
+                <p className="text-center text-xs text-muted-foreground">{resetMessage}</p>
+              )}
+            </form>
+          )}
+        </div>
       </div>
     </div>
   )

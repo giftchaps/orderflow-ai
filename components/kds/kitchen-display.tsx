@@ -5,7 +5,7 @@ import { ConfigDialog } from "@/components/kds/config-dialog"
 import { Header, type ConnectionStatus } from "@/components/kds/header"
 import { OrderColumn } from "@/components/kds/order-column"
 import { OrderToast } from "@/components/kds/order-toast"
-import { PinGate, usePinGate } from "@/components/kds/pin-gate"
+import { getDisplayToken, PinGate, usePinGate } from "@/components/kds/pin-gate"
 import type { Order } from "@/lib/orders"
 
 const DEMO_ORDERS: Order[] = [
@@ -335,10 +335,12 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
       const patchUrl = slug
         ? `/api/orders/${orderId}?slug=${encodeURIComponent(slug)}`
         : `/api/orders/${orderId}`
+      const displayToken = slug ? getDisplayToken(slug) : null
       const response = await fetch(patchUrl, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          ...(displayToken ? { "x-kds-token": displayToken } : {}),
         },
         body: JSON.stringify({ status: newStatus }),
       })
