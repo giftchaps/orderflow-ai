@@ -71,7 +71,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
         <Link href="/admin/businesses">
           <Button variant="outline">Back to Businesses</Button>
         </Link>
-        <Link href="/business/dashboard">
+        <Link href={`/admin/businesses/${business.slug}/dashboard`}>
           <Button>Open Business Dashboard</Button>
         </Link>
       </div>
