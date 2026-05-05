@@ -5,6 +5,7 @@ import { ConfigDialog } from "@/components/kds/config-dialog"
 import { Header, type ConnectionStatus } from "@/components/kds/header"
 import { OrderColumn } from "@/components/kds/order-column"
 import { OrderToast } from "@/components/kds/order-toast"
+import { PinGate, usePinGate } from "@/components/kds/pin-gate"
 import type { Order } from "@/lib/orders"
 
 const DEMO_ORDERS: Order[] = [
@@ -139,6 +140,9 @@ function isOrdersErrorResponse(
 }
 
 export function KitchenDisplay({ slug }: { slug?: string }) {
+  const { unlocked, checking } = usePinGate(slug)
+  const [pinUnlocked, setPinUnlocked] = useState(false)
+
   const [orders, setOrders] = useState<Order[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set())
@@ -149,6 +153,8 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const healthIssuesRef = useRef<string[]>([])
   const newOrderTimeoutRef = useRef<number | null>(null)
+
+  const isUnlocked = unlocked || pinUnlocked
 
   const showToast = useCallback((message: string) => {
     setToast(message)
@@ -326,7 +332,10 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
     }
 
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const patchUrl = slug
+        ? `/api/orders/${orderId}?slug=${encodeURIComponent(slug)}`
+        : `/api/orders/${orderId}`
+      const response = await fetch(patchUrl, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -349,6 +358,14 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
       setConnectionStatus("error")
       setConnectionError(error instanceof Error ? error.message : "Unable to update order.")
     }
+  }
+
+  if (checking) {
+    return <div className="min-h-screen bg-background" />
+  }
+
+  if (!isUnlocked && slug) {
+    return <PinGate slug={slug} onUnlock={() => setPinUnlocked(true)} />
   }
 
   const pendingOrders = orders.filter((order) => order.status === "pending")

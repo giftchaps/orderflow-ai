@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Copy, Check } from "lucide-react"
+import { Copy, Check, Eye, EyeOff } from "lucide-react"
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false)
@@ -30,6 +30,7 @@ interface Business {
   prep_time_minutes: number | null
   phone_number: string | null
   vapi_assistant_id: string | null
+  display_pin: string | null
 }
 
 interface Props {
@@ -42,6 +43,12 @@ export function SettingsForm({ business: initial, kitchenUrl }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const [pin, setPin] = useState("")
+  const [pinConfirm, setPinConfirm] = useState("")
+  const [showPin, setShowPin] = useState(false)
+  const [pinSaving, setPinSaving] = useState(false)
+  const [pinMsg, setPinMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
   const handleSave = async () => {
     setSaving(true)
     const supabase = createClient()
@@ -53,6 +60,38 @@ export function SettingsForm({ business: initial, kitchenUrl }: Props) {
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleSavePin = async () => {
+    if (pin.length < 4 || pin.length > 8 || !/^\d+$/.test(pin)) {
+      setPinMsg({ ok: false, text: "PIN must be 4–8 digits." })
+      return
+    }
+    if (pin !== pinConfirm) {
+      setPinMsg({ ok: false, text: "PINs do not match." })
+      return
+    }
+    setPinSaving(true)
+    const supabase = createClient()
+    const { error } = await supabase.from("businesses").update({ display_pin: pin }).eq("id", business.id)
+    setPinSaving(false)
+    if (error) {
+      setPinMsg({ ok: false, text: "Failed to save PIN." })
+    } else {
+      setBusiness({ ...business, display_pin: pin })
+      setPin("")
+      setPinConfirm("")
+      setPinMsg({ ok: true, text: "PIN saved!" })
+    }
+    setTimeout(() => setPinMsg(null), 3000)
+  }
+
+  const handleClearPin = async () => {
+    const supabase = createClient()
+    await supabase.from("businesses").update({ display_pin: null }).eq("id", business.id)
+    setBusiness({ ...business, display_pin: null })
+    setPinMsg({ ok: true, text: "PIN removed. Display is now open access." })
+    setTimeout(() => setPinMsg(null), 3000)
   }
 
   return (
@@ -96,6 +135,65 @@ export function SettingsForm({ business: initial, kitchenUrl }: Props) {
           <Button onClick={handleSave} disabled={saving}>
             {saved ? "Saved!" : saving ? "Saving..." : "Save Changes"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Kitchen Display PIN */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle>Kitchen Display PIN</CardTitle>
+          <CardDescription>
+            Staff must enter this PIN to access the kitchen display at your display URL.
+            {business.display_pin ? " A PIN is currently set." : " No PIN set — display is open access."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>New PIN (4–8 digits)</Label>
+            <div className="relative w-48">
+              <Input
+                type={showPin ? "text" : "password"}
+                inputMode="numeric"
+                maxLength={8}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="••••"
+                className="pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPin((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Confirm PIN</Label>
+            <Input
+              type={showPin ? "text" : "password"}
+              inputMode="numeric"
+              maxLength={8}
+              value={pinConfirm}
+              onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ""))}
+              placeholder="••••"
+              className="w-48"
+            />
+          </div>
+          {pinMsg && (
+            <p className={`text-sm ${pinMsg.ok ? "text-green-500" : "text-destructive"}`}>{pinMsg.text}</p>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={handleSavePin} disabled={pinSaving}>
+              {pinSaving ? "Saving..." : business.display_pin ? "Update PIN" : "Set PIN"}
+            </Button>
+            {business.display_pin && (
+              <Button variant="outline" onClick={handleClearPin}>
+                Remove PIN
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 

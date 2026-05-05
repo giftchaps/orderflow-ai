@@ -10,7 +10,7 @@ export default async function SettingsPage() {
   const supabase = createSupabaseServerClient()
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name, slug, address, prep_time_minutes, phone_number, vapi_assistant_id")
+    .select("id, name, slug, address, prep_time_minutes, phone_number, vapi_assistant_id, display_pin")
     .eq("id", role.business_id)
     .single()
 

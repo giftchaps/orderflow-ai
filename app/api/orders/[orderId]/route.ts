@@ -35,12 +35,36 @@ const bodySchema = z.object({
   status: z.enum(["making", "ready", "done", "cancelled"]),
 })
 
+const SLUG_RE = /^[a-z0-9-]{1,80}$/
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
+  const { searchParams } = new URL(request.url)
+  const slug = searchParams.get("slug")
+
   const callerRole = await getUserRole()
-  if (!callerRole?.business_id) {
+
+  // Resolve business_id: prefer authenticated session, fall back to slug
+  let resolvedBusinessId: string | null = null
+
+  if (callerRole?.business_id) {
+    resolvedBusinessId = callerRole.business_id
+  } else if (slug) {
+    if (!SLUG_RE.test(slug)) {
+      return NextResponse.json({ ok: false, message: "Invalid slug." }, { status: 400 })
+    }
+    const supabase = createSupabaseServerClient()
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("slug", slug)
+      .single()
+    if (business) resolvedBusinessId = business.id
+  }
+
+  if (!resolvedBusinessId) {
     return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
   }
 
@@ -60,21 +84,21 @@ export async function PATCH(
   try {
     const { orderId } = await params
 
-    // Verify the order belongs to the caller's business
-    if (!callerRole.is_super_admin) {
+    // Verify the order belongs to the resolved business
+    if (!callerRole?.is_super_admin) {
       const supabase = createSupabaseServerClient()
       const { data: order } = await supabase
         .from("orders")
         .select("business_id")
         .eq("id", orderId)
         .maybeSingle()
-      if (!order || order.business_id !== callerRole.business_id) {
+      if (!order || order.business_id !== resolvedBusinessId) {
         return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 })
       }
     }
     const body = bodySchema.parse(await request.json())
 
-    await updateOrderStatus(orderId, body.status)
+    await updateOrderStatus(orderId, body.status, resolvedBusinessId)
 
     // Send SMS when order is marked ready
     if (body.status === "ready") {

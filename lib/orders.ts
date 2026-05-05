@@ -58,15 +58,15 @@ export async function listActiveOrders(): Promise<Order[]> {
   return z.array(orderSchema).parse(data ?? [])
 }
 
-export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
+export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus, businessId?: string) {
   const supabase = createSupabaseServerClient()
-  const { ORDERFLOW_BUSINESS_ID } = getServerEnv()
+  const resolvedBusinessId = businessId ?? getServerEnv().ORDERFLOW_BUSINESS_ID
 
   const { data: existingOrder, error: existingOrderError } = await supabase
     .from("orders")
     .select("id, status")
     .eq("id", orderId)
-    .eq("business_id", ORDERFLOW_BUSINESS_ID)
+    .eq("business_id", resolvedBusinessId)
     .maybeSingle()
 
   if (existingOrderError) {
@@ -102,7 +102,7 @@ export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus
     .from("orders")
     .update(updates)
     .eq("id", orderId)
-    .eq("business_id", ORDERFLOW_BUSINESS_ID)
+    .eq("business_id", resolvedBusinessId)
 
   if (error) {
     throw new Error(error.message)
