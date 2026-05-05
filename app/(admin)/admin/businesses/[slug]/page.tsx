@@ -25,7 +25,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
   if (error) throw new Error(error.message)
   if (!business) notFound()
 
-  const { data: displaySettings } = await supabase
+  const { data: displaySettings, error: displaySettingsError } = await supabase
     .from("businesses")
     .select("display_pin")
     .eq("id", business.id)
@@ -83,6 +83,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
       <BusinessOperationsPanel
         business={{ ...business, display_pin: displaySettings?.display_pin ?? null }}
         staff={staff ?? []}
+        displayPinAvailable={!displaySettingsError}
       />
 
       <div className="flex gap-2">

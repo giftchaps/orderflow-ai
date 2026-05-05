@@ -64,6 +64,16 @@ export async function PATCH(
       .eq("id", businessId)
 
     if (updateError) {
+      if ("display_pin" in updates && updateError.message.includes("display_pin")) {
+        return NextResponse.json(
+          {
+            error:
+              "Database migration required: add businesses.display_pin before resetting kitchen PINs.",
+          },
+          { status: 409 }
+        )
+      }
+
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 

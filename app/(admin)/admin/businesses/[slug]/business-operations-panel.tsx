@@ -45,9 +45,10 @@ type SaveState = "idle" | "saving" | "saved" | "error"
 interface Props {
   business: Business
   staff: StaffMember[]
+  displayPinAvailable: boolean
 }
 
-export function BusinessOperationsPanel({ business, staff }: Props) {
+export function BusinessOperationsPanel({ business, staff, displayPinAvailable }: Props) {
   const router = useRouter()
   const [ownerEmail, setOwnerEmail] = useState(business.owner_email ?? "")
   const [plan, setPlan] = useState(business.plan ?? "starter")
@@ -125,7 +126,7 @@ export function BusinessOperationsPanel({ business, staff }: Props) {
     const data = await res.json()
     if (!res.ok || !data.ok) {
       setPinStatus("error")
-      setMessage(data.issues?.[0] ?? data.error ?? "Unable to update kitchen PIN.")
+      setMessage(data.issues?.[0] ?? data.error ?? data.message ?? "Unable to update kitchen PIN.")
       return
     }
 
@@ -253,8 +254,20 @@ export function BusinessOperationsPanel({ business, staff }: Props) {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
             <span className="text-sm text-muted-foreground">Current state</span>
-            {business.display_pin ? <Badge>PIN Set</Badge> : <Badge variant="secondary">Open Access</Badge>}
+            {!displayPinAvailable ? (
+              <Badge variant="secondary">Migration Required</Badge>
+            ) : business.display_pin ? (
+              <Badge>PIN Set</Badge>
+            ) : (
+              <Badge variant="secondary">Open Access</Badge>
+            )}
           </div>
+
+          {!displayPinAvailable && (
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+              The production database is missing the display PIN column. Apply the Supabase migration before resetting PINs.
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="display-pin">New PIN</Label>
@@ -269,11 +282,11 @@ export function BusinessOperationsPanel({ business, staff }: Props) {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Button onClick={() => updatePin(pin)} disabled={pinStatus === "saving" || pin.length < 4}>
+            <Button onClick={() => updatePin(pin)} disabled={!displayPinAvailable || pinStatus === "saving" || pin.length < 4}>
               <KeyRound className="mr-2 h-4 w-4" />
               Reset PIN
             </Button>
-            <Button variant="outline" onClick={() => updatePin(null)} disabled={pinStatus === "saving"}>
+            <Button variant="outline" onClick={() => updatePin(null)} disabled={!displayPinAvailable || pinStatus === "saving"}>
               Remove PIN
             </Button>
           </div>

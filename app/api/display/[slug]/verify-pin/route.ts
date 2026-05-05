@@ -42,11 +42,25 @@ export async function POST(
     return NextResponse.json({ ok: false, message: "Server not configured." }, { status: 500 })
   }
 
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from("businesses")
     .select("display_pin")
     .eq("slug", slug)
     .single()
+
+  if (businessError?.message.includes("display_pin")) {
+    const { data: fallbackBusiness } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("slug", slug)
+      .single()
+
+    if (!fallbackBusiness) {
+      return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
+    }
+
+    return NextResponse.json({ ok: true, token: signDisplayToken(slug) })
+  }
 
   if (!business) {
     return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
