@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ResendInviteButton } from "./resend-invite-button"
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -21,18 +22,16 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
     .eq("slug", slug)
     .maybeSingle()
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  if (!business) {
-    notFound()
-  }
+  if (error) throw new Error(error.message)
+  if (!business) notFound()
 
   const { data: staff } = await supabase
     .from("businesses_staff")
-    .select("id")
+    .select("id, email, role, user_id")
     .eq("business_id", business.id)
+
+  const ownerStaff = staff?.find((s) => s.role === "owner")
+  const ownerLinked = !!ownerStaff?.user_id
 
   return (
     <div className="p-8 space-y-6">
@@ -54,18 +53,39 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
           <CardTitle>Business Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {warning ? (
+          {warning && (
             <div className="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2">
               {warning}
             </div>
-          ) : null}
+          )}
           <p><span className="text-muted-foreground">Owner Email:</span> {business.owner_email ?? "-"}</p>
           <p><span className="text-muted-foreground">Timezone:</span> {business.timezone ?? "-"}</p>
           <p><span className="text-muted-foreground">Address:</span> {business.address ?? "-"}</p>
           <p><span className="text-muted-foreground">Staff Members:</span> {staff?.length ?? 0}</p>
           <p><span className="text-muted-foreground">Created:</span> {new Date(business.created_at).toLocaleString()}</p>
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-muted-foreground">Owner Account:</span>
+            {ownerLinked ? (
+              <Badge className="bg-green-600 hover:bg-green-600">Activated</Badge>
+            ) : (
+              <Badge variant="secondary">Invite Pending</Badge>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Owner invite actions */}
+      {business.owner_email && !ownerLinked && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="pt-5 space-y-3">
+            <p className="text-sm text-amber-300 font-medium">Owner has not accepted their invite yet.</p>
+            <p className="text-sm text-muted-foreground">
+              Send a new invite email to <span className="font-medium text-foreground">{business.owner_email}</span> so they can set a password and access their portal.
+            </p>
+            <ResendInviteButton email={business.owner_email} businessId={business.id} />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-2">
         <Link href="/admin/businesses">

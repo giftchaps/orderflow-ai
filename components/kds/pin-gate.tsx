@@ -39,12 +39,17 @@ export function usePinGate(slug: string | undefined): {
       return
     }
 
-    // No token — check if this display has no PIN set (open access)
+    // No token — check if this display has no PIN set (open access).
+    // If the API errors (e.g. migration not yet run), fail open so the
+    // display still works rather than blocking staff permanently.
     checkNoPin(slug).then((token) => {
       if (token) {
         localStorage.setItem(TOKEN_KEY(slug), token)
         setUnlocked(true)
       }
+      setChecking(false)
+    }).catch(() => {
+      setUnlocked(true)
       setChecking(false)
     })
   }, [slug])
@@ -62,7 +67,7 @@ export function PinGate({ slug, onUnlock }: PinGateProps) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (pin.length < 4) { setError("PIN must be at least 4 digits."); return }
     setLoading(true)
