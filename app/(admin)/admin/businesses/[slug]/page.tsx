@@ -18,12 +18,18 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
 
   const { data: business, error } = await supabase
     .from("businesses")
-    .select("id, name, slug, address, timezone, owner_email, plan, is_active, display_pin, created_at")
+    .select("id, name, slug, address, timezone, owner_email, plan, is_active, created_at")
     .eq("slug", slug)
     .maybeSingle()
 
   if (error) throw new Error(error.message)
   if (!business) notFound()
+
+  const { data: displaySettings } = await supabase
+    .from("businesses")
+    .select("display_pin")
+    .eq("id", business.id)
+    .maybeSingle()
 
   const { data: staff } = await supabase
     .from("businesses_staff")
@@ -74,7 +80,10 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
         </CardContent>
       </Card>
 
-      <BusinessOperationsPanel business={business} staff={staff ?? []} />
+      <BusinessOperationsPanel
+        business={{ ...business, display_pin: displaySettings?.display_pin ?? null }}
+        staff={staff ?? []}
+      />
 
       <div className="flex gap-2">
         <Link href="/admin/businesses">
