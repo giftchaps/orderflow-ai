@@ -21,11 +21,27 @@ export default function ResetPasswordPage() {
     const supabase = createClient()
 
     const exchangeToken = async () => {
+      // PKCE flow: token arrives as ?code= query param
+      const searchParams = new URLSearchParams(window.location.search)
+      const code = searchParams.get("code")
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          setError("Invalid or expired reset link. Request a new one.")
+          return
+        }
+        window.history.replaceState(null, "", window.location.pathname)
+        setSessionReady(true)
+        return
+      }
+
+      // Legacy implicit flow: token arrives in URL hash
       const hash = window.location.hash
-      const params = new URLSearchParams(hash.replace("#", ""))
-      const accessToken = params.get("access_token")
-      const refreshToken = params.get("refresh_token")
-      const type = params.get("type")
+      const hashParams = new URLSearchParams(hash.replace("#", ""))
+      const accessToken = hashParams.get("access_token")
+      const refreshToken = hashParams.get("refresh_token")
+      const type = hashParams.get("type")
 
       if (accessToken && refreshToken && type === "recovery") {
         const { error } = await supabase.auth.setSession({
@@ -38,13 +54,15 @@ export default function ResetPasswordPage() {
         }
         window.history.replaceState(null, "", window.location.pathname)
         setSessionReady(true)
+        return
+      }
+
+      // Already have a valid session (e.g. navigated back to this page)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setSessionReady(true)
       } else {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          setSessionReady(true)
-        } else {
-          setError("Invalid or expired reset link. Request a new one.")
-        }
+        setError("Invalid or expired reset link. Request a new one.")
       }
     }
 
