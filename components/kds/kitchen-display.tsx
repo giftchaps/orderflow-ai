@@ -176,7 +176,11 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
   const syncOrders = useCallback(async () => {
     try {
       const url = slug ? `/api/orders?slug=${encodeURIComponent(slug)}` : "/api/orders"
-      const response = await fetch(url, { cache: "no-store" })
+      const displayToken = slug ? getDisplayToken(slug) : null
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: displayToken ? { "x-kds-token": displayToken } : undefined,
+      })
       const payload = (await response.json()) as OrdersSuccessResponse | OrdersErrorResponse
 
       if (!response.ok) {

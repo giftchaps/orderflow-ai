@@ -16,6 +16,21 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+_REQUIRED = [
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "OPENAI_API_KEY",
+    "ORDERFLOW_BUSINESS_ID",
+    "TELNYX_API_KEY",
+    "TELNYX_FROM_NUMBER",
+]
+_missing = [k for k in _REQUIRED if not os.environ.get(k)]
+if _missing:
+    raise RuntimeError(
+        f"Missing required environment variables: {', '.join(_missing)}. "
+        "Set them in your .env file or deployment environment before starting."
+    )
+
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
@@ -198,12 +213,16 @@ async def vapi_webhook(request: Request):
         logger.warning("Empty transcript received — skipping order extraction")
         return {"status": "ok"}
 
-    logger.info("Processing end-of-call-report for %s", customer_phone)
+    # Extract Vapi call ID for idempotency — present at message.call.id
+    vapi_call_id = message.get("call", {}).get("id") or None
+
+    logger.info("Processing end-of-call-report for %s (call_id=%s)", customer_phone, vapi_call_id)
 
     # Extract structured order items via GPT-4o
     items = extract_order_items(transcript)
 
-    # Insert order into Supabase
+    # Insert order — ON CONFLICT on (business_id, vapi_call_id) means retried
+    # webhooks for the same call are silently ignored rather than creating duplicates.
     order_data = {
         "business_id": BUSINESS_ID,
         "channel": "phone",
@@ -211,9 +230,16 @@ async def vapi_webhook(request: Request):
         "items": items,
         "raw_transcript": transcript,
         "status": "pending",
+        **({"vapi_call_id": vapi_call_id} if vapi_call_id else {}),
     }
 
-    result = supabase.table("orders").insert(order_data).execute()
+    result = (
+        supabase.table("orders")
+        .upsert(order_data, on_conflict="business_id,vapi_call_id", ignore_duplicates=True)
+        .execute()
+        if vapi_call_id
+        else supabase.table("orders").insert(order_data).execute()
+    )
 
     if result.data:
         order = result.data[0]

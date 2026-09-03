@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getServerEnv, getServerEnvIssues } from "@/lib/env"
 import { orderSchema, listActiveOrders } from "@/lib/orders"
 import { createSupabaseServerClient, createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
+import { getUserRole } from "@/lib/auth/get-user-role"
+import { verifyDisplayToken } from "@/lib/kds-token"
 
 export const dynamic = "force-dynamic"
 
@@ -34,7 +36,7 @@ const createOrderBodySchema = z.object({
 
 const SLUG_RE = /^[a-z0-9-]{1,80}$/
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const slug = searchParams.get("slug")
 
@@ -43,6 +45,16 @@ export async function GET(request: Request) {
     if (!SLUG_RE.test(slug)) {
       return NextResponse.json({ ok: false, message: "Invalid slug." }, { status: 400 })
     }
+
+    // Require either a valid staff session or a valid KDS display token
+    const displayToken = request.headers.get("x-kds-token")
+    const callerRole = await getUserRole()
+    const hasDisplayAccess = !!displayToken && verifyDisplayToken(slug, displayToken)
+
+    if (!callerRole && !hasDisplayAccess) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
+    }
+
     try {
       const supabase = createSupabaseServerClientFromEnv()
       const { data: business, error: bizError } = await supabase
@@ -53,6 +65,11 @@ export async function GET(request: Request) {
 
       if (bizError || !business) {
         return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
+      }
+
+      // Staff sessions are scoped to their own business; super-admins can see any
+      if (callerRole && !callerRole.is_super_admin && callerRole.business_id !== business.id) {
+        return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 })
       }
 
       const { data, error } = await supabase

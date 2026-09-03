@@ -29,12 +29,12 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  // Use getSession for middleware — it reads from the cookie without a network call
-  const { data: { session } } = await supabase.auth.getSession()
+  // getUser() revalidates the JWT against the Auth server — getSession() trusts the cookie blindly
+  const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
   // Redirect unauthenticated users to login
-  if (!session && (pathname.startsWith("/admin") || pathname.startsWith("/business"))) {
+  if (!user && (pathname.startsWith("/admin") || pathname.startsWith("/business"))) {
     const loginUrl = new URL("/login", request.url)
     return NextResponse.redirect(loginUrl)
   }
