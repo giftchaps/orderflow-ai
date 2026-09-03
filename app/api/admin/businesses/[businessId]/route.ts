@@ -15,6 +15,8 @@ const bodySchema = z.object({
     .regex(/^\d{4,8}$/, "PIN must be 4-8 digits.")
     .nullable()
     .optional(),
+  vapi_assistant_id: z.string().nullable().optional(),
+  phone_number: z.string().nullable().optional(),
 })
 
 type BusinessUpdates = {
@@ -22,6 +24,8 @@ type BusinessUpdates = {
   plan?: "starter" | "growth" | "pro"
   is_active?: boolean
   display_pin?: string | null
+  vapi_assistant_id?: string | null
+  phone_number?: string | null
 }
 
 export async function PATCH(
@@ -52,6 +56,12 @@ export async function PATCH(
     }
     if ("display_pin" in body) {
       updates.display_pin = body.display_pin ?? null
+    }
+    if ("vapi_assistant_id" in body) {
+      updates.vapi_assistant_id = body.vapi_assistant_id ?? null
+    }
+    if ("phone_number" in body) {
+      updates.phone_number = body.phone_number ?? null
     }
 
     if (Object.keys(updates).length === 0) {

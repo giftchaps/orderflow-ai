@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getUserRole } from "@/lib/auth/get-user-role"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Building2, ShoppingBag, TrendingUp, Plus } from "lucide-react"
+import { Building2, ShoppingBag, TrendingUp, Plus, Activity, UserPlus, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -19,20 +19,29 @@ export default async function AdminDashboardPage() {
     { count: ordersToday },
     { count: ordersWeek },
     { count: newBusinesses },
+    { count: activeOrders },
+    { count: pendingInvites },
+    { count: demoRequests },
     { data: businesses },
   ] = await Promise.all([
     supabase.from("businesses").select("*", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("orders").select("*", { count: "exact", head: true }).gte("placed_at", todayStart),
     supabase.from("orders").select("*", { count: "exact", head: true }).gte("placed_at", weekStart),
     supabase.from("businesses").select("*", { count: "exact", head: true }).gte("created_at", monthStart),
-    supabase.from("businesses").select("id, name, slug, is_active, created_at, phone_number").order("created_at", { ascending: false }).limit(10),
+    supabase.from("orders").select("*", { count: "exact", head: true }).in("status", ["pending", "making", "ready"]),
+    supabase.from("businesses_staff").select("*", { count: "exact", head: true }).is("user_id", null),
+    supabase.from("demo_requests").select("*", { count: "exact", head: true }),
+    supabase.from("businesses").select("id, name, slug, is_active, created_at, phone_number, vapi_assistant_id").order("created_at", { ascending: false }).limit(10),
   ])
 
   const stats = [
     { label: "Active Businesses", value: activeBusinesses ?? 0, icon: Building2 },
     { label: "Orders Today", value: ordersToday ?? 0, icon: ShoppingBag },
+    { label: "Active Orders Now", value: activeOrders ?? 0, icon: Activity },
     { label: "Orders This Week", value: ordersWeek ?? 0, icon: TrendingUp },
     { label: "New This Month", value: newBusinesses ?? 0, icon: Plus },
+    { label: "Pending Invites", value: pendingInvites ?? 0, icon: UserPlus },
+    { label: "Demo Requests", value: demoRequests ?? 0, icon: MessageSquare },
   ]
 
   return (
@@ -51,7 +60,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
@@ -83,6 +92,7 @@ export default async function AdminDashboardPage() {
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Business</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Phone</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Agent</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Joined</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground"></th>
@@ -93,6 +103,11 @@ export default async function AdminDashboardPage() {
                   <tr key={b.id} className="hover:bg-secondary/30 transition-colors">
                     <td className="px-4 py-3 font-medium">{b.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{b.phone_number ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className={b.vapi_assistant_id ? "text-green-600 border-green-600/40" : "text-muted-foreground"}>
+                        {b.vapi_assistant_id ? "Live" : "Not set"}
+                      </Badge>
+                    </td>
                     <td className="px-4 py-3">
                       <Badge variant={b.is_active ? "default" : "secondary"} className={b.is_active ? "bg-green-600" : ""}>
                         {b.is_active ? "Active" : "Inactive"}
@@ -110,7 +125,7 @@ export default async function AdminDashboardPage() {
                 ))}
                 {(businesses ?? []).length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                       No businesses yet. <Link href="/admin/businesses/new" className="underline">Onboard your first business</Link>
                     </td>
                   </tr>

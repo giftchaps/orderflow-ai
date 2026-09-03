@@ -30,6 +30,8 @@ type Business = {
   plan: string | null
   is_active: boolean | null
   display_pin: string | null
+  vapi_assistant_id: string | null
+  phone_number: string | null
 }
 
 type StaffMember = {
@@ -53,6 +55,8 @@ export function BusinessOperationsPanel({ business, staff, displayPinAvailable }
   const [ownerEmail, setOwnerEmail] = useState(business.owner_email ?? "")
   const [plan, setPlan] = useState(business.plan ?? "starter")
   const [isActive, setIsActive] = useState(Boolean(business.is_active))
+  const [vapiAssistantId, setVapiAssistantId] = useState(business.vapi_assistant_id ?? "")
+  const [phoneNumber, setPhoneNumber] = useState(business.phone_number ?? "")
   const [pin, setPin] = useState("")
   const [status, setStatus] = useState<SaveState>("idle")
   const [inviteStatus, setInviteStatus] = useState<SaveState>("idle")
@@ -76,6 +80,8 @@ export function BusinessOperationsPanel({ business, staff, displayPinAvailable }
         owner_email: ownerEmail,
         plan,
         is_active: isActive,
+        vapi_assistant_id: vapiAssistantId || null,
+        phone_number: phoneNumber || null,
       }),
     })
 
@@ -192,6 +198,29 @@ export function BusinessOperationsPanel({ business, staff, displayPinAvailable }
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="phone-number">Phone Number (Vapi)</Label>
+              <Input
+                id="phone-number"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="+1 (216) 777 6065"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vapi-assistant-id">Vapi Assistant ID</Label>
+              <Input
+                id="vapi-assistant-id"
+                value={vapiAssistantId}
+                onChange={(e) => setVapiAssistantId(e.target.value)}
+                placeholder="9ffca22f-e465-4ffc-..."
+                className="font-mono text-xs"
+              />
             </div>
           </div>
 

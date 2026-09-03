@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Phone, LayoutDashboard, UtensilsCrossed, ClipboardList, BarChart3, Settings, Users, LogOut, MonitorCheck, Building2 } from "lucide-react"
+import { Phone, LayoutDashboard, UtensilsCrossed, ClipboardList, BarChart3, Settings, Users, LogOut, MonitorCheck, Building2, MessageSquare, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -24,6 +24,8 @@ interface SidebarProps {
 const adminNav: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/businesses", label: "Businesses", icon: Building2 },
+  { href: "/admin/orders", label: "All Orders", icon: ShoppingBag },
+  { href: "/admin/demo-requests", label: "Demo Requests", icon: MessageSquare },
 ]
 
 const businessNav: NavItem[] = [

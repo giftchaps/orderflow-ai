@@ -18,7 +18,7 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
 
   const { data: business, error } = await supabase
     .from("businesses")
-    .select("id, name, slug, address, timezone, owner_email, plan, is_active, created_at")
+    .select("id, name, slug, address, timezone, owner_email, plan, is_active, created_at, vapi_assistant_id, phone_number")
     .eq("slug", slug)
     .maybeSingle()
 
@@ -81,7 +81,12 @@ export default async function AdminBusinessDetailsPage({ params, searchParams }:
       </Card>
 
       <BusinessOperationsPanel
-        business={{ ...business, display_pin: displaySettings?.display_pin ?? null }}
+        business={{
+          ...business,
+          display_pin: displaySettings?.display_pin ?? null,
+          vapi_assistant_id: business.vapi_assistant_id ?? null,
+          phone_number: business.phone_number ?? null,
+        }}
         staff={staff ?? []}
         displayPinAvailable={!displaySettingsError}
       />
