@@ -6,6 +6,8 @@ import { listActiveOrders } from "@/lib/orders-server"
 import { createSupabaseServerClient, createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
 import { getSession } from "@/lib/auth/session"
 import { verifyDisplayToken } from "@/lib/kds-token"
+import { requireIngestSecret } from "@/lib/ingest-auth"
+import { ApiError } from "@/lib/auth/guards"
 
 export const dynamic = "force-dynamic"
 
@@ -91,7 +93,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fall back to env-configured business
+  // Fall back to the legacy, single-tenant env-configured business. Unauthenticated
+  // by design (no staff session or KDS token applies here), so it's gated by the
+  // ingest secret instead.
+  try {
+    requireIngestSecret(request)
+  } catch (error) {
+    if (error instanceof ApiError) return NextResponse.json({ ok: false, message: error.message }, { status: error.status })
+    throw error
+  }
+
   const envIssues = getServerEnvIssues()
 
   if (envIssues.length > 0) {
@@ -139,6 +150,13 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     )
+  }
+
+  try {
+    requireIngestSecret(request)
+  } catch (error) {
+    if (error instanceof ApiError) return NextResponse.json({ ok: false, message: error.message }, { status: error.status })
+    throw error
   }
 
   try {

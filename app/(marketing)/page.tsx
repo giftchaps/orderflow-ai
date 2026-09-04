@@ -4,9 +4,12 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, Check, Play, Phone, ChefHat, MessageSquare, BarChart3, Clock, MapPin, Menu, X } from "lucide-react"
+import { DemoRequestDialog } from "@/components/marketing/demo-request-dialog"
 
 export default function OrderFlowLanding() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(false)
+  const [ctaEmail, setCtaEmail] = useState("")
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,7 +25,10 @@ export default function OrderFlowLanding() {
               <a href="#demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Demo</a>
             </div>
 
-            <Button className="hidden md:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6">
+            <Button
+              onClick={() => setDemoOpen(true)}
+              className="hidden md:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6"
+            >
               Book a demo
             </Button>
 
@@ -40,7 +46,15 @@ export default function OrderFlowLanding() {
             <a href="#how-it-works" className="block text-foreground">How it works</a>
             <a href="#features" className="block text-foreground">Features</a>
             <a href="#demo" className="block text-foreground">Demo</a>
-            <Button className="w-full bg-primary text-primary-foreground rounded-full mt-4">Book a demo</Button>
+            <Button
+              onClick={() => {
+                setMobileMenuOpen(false)
+                setDemoOpen(true)
+              }}
+              className="w-full bg-primary text-primary-foreground rounded-full mt-4"
+            >
+              Book a demo
+            </Button>
           </div>
         )}
       </nav>
@@ -64,7 +78,11 @@ export default function OrderFlowLanding() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 h-14 text-base">
+            <Button
+              size="lg"
+              onClick={() => setDemoOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 h-14 text-base"
+            >
               Request access
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -317,15 +335,28 @@ export default function OrderFlowLanding() {
             We&apos;ll walk you through how OrderFlow handles your menu, your volume, and your workflow. Takes 20 minutes.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              setDemoOpen(true)
+            }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
+          >
             <Input
+              type="email"
+              value={ctaEmail}
+              onChange={(e) => setCtaEmail(e.target.value)}
               placeholder="Your email"
               className="h-14 px-6 rounded-full bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 w-full sm:w-80"
             />
-            <Button size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 rounded-full px-8 h-14 w-full sm:w-auto">
+            <Button
+              type="submit"
+              size="lg"
+              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 rounded-full px-8 h-14 w-full sm:w-auto"
+            >
               Request access
             </Button>
-          </div>
+          </form>
 
           <p className="text-sm opacity-60">
             Already a customer?{" "}
@@ -346,6 +377,8 @@ export default function OrderFlowLanding() {
           <p className="text-sm text-muted-foreground">© 2026</p>
         </div>
       </footer>
+
+      <DemoRequestDialog open={demoOpen} onOpenChange={setDemoOpen} initialEmail={ctaEmail} />
     </div>
   )
 }
