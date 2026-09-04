@@ -1,84 +1,82 @@
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { z } from "zod"
+import { apiError, apiRequireSession, ApiError } from "@/lib/auth/guards"
+import { can } from "@/lib/auth/permissions"
 
+const MAX_BYTES = 10 * 1024 * 1024
+
+const menuSchema = z.object({
+  categories: z.array(
+    z.object({
+      name: z.string().min(1),
+      items: z.array(
+        z.object({
+          name: z.string().min(1),
+          description: z.string().optional(),
+          aliases: z.array(z.string()).optional(),
+          active: z.boolean().optional(),
+          prices: z.record(z.string(), z.number()).optional(),
+        })
+      ),
+    })
+  ),
+})
+
+/**
+ * POST /api/menu/extract  (multipart: image)
+ * Vision-extract a menu photo into the MenuDocument shape.
+ * Allowed for platform admins and any member with menu.edit in at least one business.
+ */
 export async function POST(req: NextRequest) {
-  const callerRole = await getUserRole()
-  if (!callerRole?.business_id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   try {
-    const formData = await req.formData()
-    const image = formData.get("image") as File | null
-    if (!image) return NextResponse.json({ error: "No image provided" }, { status: 400 })
+    const session = await apiRequireSession()
+    const allowed = session.isPlatformAdmin || session.memberships.some((m) => can(m.role, "menu.edit"))
+    if (!allowed) throw new ApiError(403, "You do not have permission to edit menus.")
 
-    const bytes = await image.arrayBuffer()
-    const base64 = Buffer.from(bytes).toString("base64")
-    const mimeType = image.type || "image/jpeg"
+    if (!process.env.OPENAI_API_KEY) throw new ApiError(503, "Menu extraction is not configured (OPENAI_API_KEY).")
+
+    const formData = await req.formData()
+    const image = formData.get("image")
+    if (!(image instanceof File)) throw new ApiError(400, "No image provided.")
+    if (image.size > MAX_BYTES) throw new ApiError(413, "Image must be under 10MB.")
+    if (!image.type.startsWith("image/")) throw new ApiError(415, "File must be an image.")
+
+    const base64 = Buffer.from(await image.arrayBuffer()).toString("base64")
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
+      max_tokens: 4096,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Extract the menu from this image and return a JSON object with this exact structure:
-{
-  "categories": [
-    {
-      "name": "Category Name",
-      "items": [
-        {
-          "name": "Item Name",
-          "description": "optional description",
-          "aliases": [],
-          "active": true,
-          "prices": {
-            "hard_roll_6inch": 0,
-            "wrap": 0,
-            "12inch": 0
-          }
-        }
-      ]
-    }
-  ]
-}
-
-Rules:
-- Extract every item you can see
-- Use the exact item names from the menu
-- Fill in prices if visible, otherwise leave as 0
-- For sandwiches/subs, use the price keys: hard_roll_6inch, wrap, 12inch
-- For other items (drinks, sides, etc.) use a "regular" price key
-- Return ONLY the JSON, no markdown, no explanation`,
+              text: `Extract the menu from this image as JSON: {"categories":[{"name":string,"items":[{"name":string,"description"?:string,"aliases":string[],"active":true,"prices":{[size:string]:number}}]}]}.
+Rules: extract every visible item with exact names; fill prices when visible otherwise 0; for sandwiches/subs use price keys hard_roll_6inch, wrap, 12inch; for everything else use "regular". Return only JSON.`,
             },
-            {
-              type: "image_url",
-              image_url: { url: `data:${mimeType};base64,${base64}`, detail: "high" },
-            },
+            { type: "image_url", image_url: { url: `data:${image.type};base64,${base64}`, detail: "high" } },
           ],
         },
       ],
-      max_tokens: 4096,
     })
 
     const raw = response.choices[0]?.message?.content ?? ""
     const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
-
-    let parsed: any
+    let parsed: unknown
     try {
       parsed = JSON.parse(cleaned)
     } catch {
-      return NextResponse.json({ error: "Failed to parse menu from image" }, { status: 422 })
+      throw new ApiError(422, "Could not read a menu from that image. Try a clearer photo.")
     }
+    const menu = menuSchema.safeParse(parsed)
+    if (!menu.success) throw new ApiError(422, "The extracted menu was malformed. Try again or enter items manually.")
 
-    return NextResponse.json(parsed)
-  } catch (err: any) {
-    console.error("[menu/extract]", err)
-    return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 })
+    return NextResponse.json({ ok: true, ...menu.data })
+  } catch (error) {
+    return apiError(error)
   }
 }

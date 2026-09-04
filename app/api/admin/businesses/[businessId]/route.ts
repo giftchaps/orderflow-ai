@@ -1,158 +1,81 @@
 import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
-import { normalizeEmail } from "@/lib/auth/normalize-email"
-import { getUserRole } from "@/lib/auth/get-user-role"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { apiError, apiRequirePlatformAdmin, ApiError } from "@/lib/auth/guards"
+import {
+  businessPlatformSchema,
+  businessProfileSchema,
+  displayPinSchema,
+  updateBusinessPlatformFields,
+  updateBusinessProfile,
+  updateDisplayPin,
+} from "@/lib/business-mutations"
+import { fetchBusiness, fetchStaff } from "@/lib/business"
 
 export const dynamic = "force-dynamic"
 
-const bodySchema = z.object({
-  owner_email: z.string().email().nullable().optional(),
-  plan: z.enum(["starter", "growth", "pro"]).optional(),
-  is_active: z.boolean().optional(),
-  display_pin: z
-    .string()
-    .regex(/^\d{4,8}$/, "PIN must be 4-8 digits.")
-    .nullable()
-    .optional(),
-  vapi_assistant_id: z.string().nullable().optional(),
-  phone_number: z.string().nullable().optional(),
-})
+type Params = { params: Promise<{ businessId: string }> }
 
-type BusinessUpdates = {
-  owner_email?: string | null
-  plan?: "starter" | "growth" | "pro"
-  is_active?: boolean
-  display_pin?: string | null
-  vapi_assistant_id?: string | null
-  phone_number?: string | null
+/** GET /api/admin/businesses/:id — full tenant record + staff (platform admin). */
+export async function GET(_req: NextRequest, { params }: Params) {
+  try {
+    await apiRequirePlatformAdmin()
+    const { businessId } = await params
+    const business = await fetchBusiness({ id: businessId })
+    if (!business) throw new ApiError(404, "Business not found.")
+    const staff = await fetchStaff(businessId)
+    const { display_pin, display_pin_hash, ...safe } = business
+    return NextResponse.json({ ok: true, business: { ...safe, has_pin: Boolean(display_pin || display_pin_hash) }, staff })
+  } catch (error) {
+    return apiError(error)
+  }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ businessId: string }> }
-) {
-  const role = await getUserRole()
-
-  if (!role?.is_super_admin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
+/**
+ * PATCH /api/admin/businesses/:id
+ * Platform admins may change profile fields, platform fields (plan, agent,
+ * telephony, owner, slug) and the display PIN in one call. Each group is
+ * validated and audited separately.
+ */
+export async function PATCH(request: NextRequest, { params }: Params) {
   try {
+    const session = await apiRequirePlatformAdmin()
     const { businessId } = await params
-    const body = bodySchema.parse(await request.json())
-    const supabase = createSupabaseServerClient()
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
+    if (!body || typeof body !== "object") throw new ApiError(400, "Invalid JSON body.")
 
-    const updates: BusinessUpdates = {}
+    const existing = await fetchBusiness({ id: businessId })
+    if (!existing) throw new ApiError(404, "Business not found.")
 
-    if ("owner_email" in body) {
-      updates.owner_email = body.owner_email ? normalizeEmail(body.owner_email) : null
+    const profile = businessProfileSchema.safeParse(pick(body, ["name", "address", "timezone", "prep_time_minutes", "ai_greeting", "business_hours"]))
+    const platform = businessPlatformSchema.safeParse(pick(body, ["plan", "phone_number", "sms_from_number", "vapi_assistant_id", "owner_email", "slug"]))
+    const pin = "display_pin" in body ? displayPinSchema.safeParse({ display_pin: body.display_pin }) : null
+
+    const issues = [profile, platform, pin].flatMap((r) => (r && !r.success ? r.error.issues.map((i) => i.message) : []))
+    if (issues.length > 0) throw new ApiError(400, issues.join(" "))
+
+    let changed = 0
+    if (profile.success && Object.keys(stripUndefined(profile.data)).length > 0) {
+      await updateBusinessProfile(session, businessId, profile.data)
+      changed += 1
     }
-    if ("plan" in body) {
-      updates.plan = body.plan ?? "starter"
+    if (platform.success && Object.keys(stripUndefined(platform.data)).length > 0) {
+      await updateBusinessPlatformFields(session, businessId, platform.data)
+      changed += 1
     }
-    if ("is_active" in body) {
-      updates.is_active = body.is_active ?? true
+    if (pin?.success) {
+      await updateDisplayPin(session, businessId, pin.data.display_pin)
+      changed += 1
     }
-    if ("display_pin" in body) {
-      updates.display_pin = body.display_pin ?? null
-    }
-    if ("vapi_assistant_id" in body) {
-      updates.vapi_assistant_id = body.vapi_assistant_id ?? null
-    }
-    if ("phone_number" in body) {
-      updates.phone_number = body.phone_number ?? null
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: "No changes provided." }, { status: 400 })
-    }
-
-    const { error: updateError } = await supabase
-      .from("businesses")
-      .update(updates)
-      .eq("id", businessId)
-
-    if (updateError) {
-      if ("display_pin" in updates && updateError.message.includes("display_pin")) {
-        return NextResponse.json(
-          {
-            error:
-              "Database migration required: add businesses.display_pin before resetting kitchen PINs.",
-          },
-          { status: 409 }
-        )
-      }
-
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
-
-    const ownerEmail = typeof updates.owner_email === "string" ? updates.owner_email : null
-
-    if (ownerEmail) {
-
-      const { data: existingOwner } = await supabase
-        .from("businesses_staff")
-        .select("id, email, user_id")
-        .eq("business_id", businessId)
-        .eq("role", "owner")
-        .is("user_id", null)
-        .limit(1)
-        .maybeSingle()
-
-      if (existingOwner) {
-        const { error: staffUpdateError } = await supabase
-          .from("businesses_staff")
-          .update({ email: ownerEmail })
-          .eq("id", existingOwner.id)
-
-        if (staffUpdateError) {
-          return NextResponse.json({ error: staffUpdateError.message }, { status: 500 })
-        }
-      } else {
-        const { data: matchingStaff } = await supabase
-          .from("businesses_staff")
-          .select("id")
-          .eq("business_id", businessId)
-          .ilike("email", ownerEmail)
-          .maybeSingle()
-
-        if (matchingStaff) {
-          const { error: promoteError } = await supabase
-            .from("businesses_staff")
-            .update({ role: "owner" })
-            .eq("id", matchingStaff.id)
-
-          if (promoteError) {
-            return NextResponse.json({ error: promoteError.message }, { status: 500 })
-          }
-        } else {
-          const { error: insertError } = await supabase.from("businesses_staff").insert({
-            business_id: businessId,
-            email: ownerEmail,
-            role: "owner",
-            is_super_admin: false,
-          })
-
-          if (insertError) {
-            return NextResponse.json({ error: insertError.message }, { status: 500 })
-          }
-        }
-      }
-    }
+    if (changed === 0) throw new ApiError(400, "No changes provided.")
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request body.", issues: error.issues.map((issue) => issue.message) },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update business." },
-      { status: 500 }
-    )
+    return apiError(error)
   }
+}
+
+function pick(obj: Record<string, unknown>, keys: string[]) {
+  return Object.fromEntries(keys.filter((k) => k in obj).map((k) => [k, obj[k]]))
+}
+function stripUndefined(obj: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined))
 }

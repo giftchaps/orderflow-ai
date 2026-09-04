@@ -23,6 +23,8 @@ export const orderSchema = z.object({
   status: z.enum(ORDER_STATUSES),
   channel: z.enum(ORDER_CHANNELS).catch("phone"),
   customer_phone: z.string().nullable().optional(),
+  customer_name: z.string().nullable().optional(),
+  total: z.coerce.number().nullable().optional(),
   placed_at: z.string(),
   items: z.array(orderItemSchema).catch([]),
   special_instructions: z.string().nullable().optional(),
@@ -34,6 +36,10 @@ export type OrderChannel = Order["channel"]
 export type OrderItem = z.infer<typeof orderItemSchema>
 
 export const ORDER_SELECT =
+  "id, order_number, status, channel, customer_phone, customer_name, total, placed_at, items, special_instructions"
+
+/** Legacy column set for databases that have not run the platform migration yet. */
+export const ORDER_SELECT_LEGACY =
   "id, order_number, status, channel, customer_phone, placed_at, items, special_instructions"
 
 /** Kitchen workflow: New -> Making -> Ready -> Done. Cancel is allowed before it is ready. */
@@ -63,13 +69,40 @@ export const CHANNEL_LABEL: Record<OrderChannel, string> = {
 
 export async function listActiveOrders(businessId: string): Promise<Order[]> {
   const supabase = createSupabaseServerClient()
-  const { data, error } = await supabase
-    .from("orders")
-    .select(ORDER_SELECT)
-    .eq("business_id", businessId)
-    .in("status", [...ACTIVE_ORDER_STATUSES])
-    .order("placed_at", { ascending: true })
+  const run = (select: string) =>
+    supabase
+      .from("orders")
+      .select(select)
+      .eq("business_id", businessId)
+      .in("status", [...ACTIVE_ORDER_STATUSES])
+      .order("placed_at", { ascending: true })
 
+  let { data, error } = await run(ORDER_SELECT)
+  if (error && /column/i.test(error.message)) ({ data, error } = await run(ORDER_SELECT_LEGACY))
+  if (error) throw new Error(error.message)
+  return z.array(orderSchema).parse(data ?? [])
+}
+
+export type OrderListFilter = {
+  status?: OrderStatus | "active" | "all"
+  from?: string
+  to?: string
+  limit?: number
+}
+
+/** Order history for one business, newest first. */
+export async function listOrders(businessId: string, filter: OrderListFilter = {}): Promise<Order[]> {
+  const supabase = createSupabaseServerClient()
+  const run = (select: string) => {
+    let q = supabase.from("orders").select(select).eq("business_id", businessId).order("placed_at", { ascending: false })
+    if (filter.status === "active") q = q.in("status", [...ACTIVE_ORDER_STATUSES])
+    else if (filter.status && filter.status !== "all") q = q.eq("status", filter.status)
+    if (filter.from) q = q.gte("placed_at", filter.from)
+    if (filter.to) q = q.lt("placed_at", filter.to)
+    return q.limit(filter.limit ?? 100)
+  }
+  let { data, error } = await run(ORDER_SELECT)
+  if (error && /column/i.test(error.message)) ({ data, error } = await run(ORDER_SELECT_LEGACY))
   if (error) throw new Error(error.message)
   return z.array(orderSchema).parse(data ?? [])
 }

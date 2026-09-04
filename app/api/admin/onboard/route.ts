@@ -1,128 +1,140 @@
 import { NextRequest, NextResponse } from "next/server"
-import { normalizeEmail } from "@/lib/auth/normalize-email"
+import { z } from "zod"
+import { apiError, apiRequirePlatformAdmin, ApiError } from "@/lib/auth/guards"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { normalizeEmail } from "@/lib/auth/normalize-email"
+import { inviteStaff } from "@/lib/invitations"
+import { logAudit } from "@/lib/audit"
+import { PLANS, SLUG_RE, slugify } from "@/lib/business"
 
+const menuItemSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1),
+  aliases: z.array(z.string()).optional(),
+  description: z.string().optional(),
+  active: z.boolean().optional(),
+  prices: z.record(z.string(), z.number().nonnegative()).optional(),
+})
+
+const menuSchema = z.object({
+  categories: z.array(z.object({ id: z.string().optional(), name: z.string().min(1), items: z.array(menuItemSchema) })),
+})
+
+export const onboardSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  slug: z.string().trim().toLowerCase().regex(SLUG_RE, "Slug may only contain lowercase letters, numbers and hyphens."),
+  address: z.string().trim().max(240).optional().or(z.literal("")),
+  timezone: z.string().trim().min(1).default("America/New_York"),
+  prep_time_minutes: z.coerce.number().int().min(1).max(240).default(15),
+  plan: z.enum(PLANS.map((p) => p.id) as [string, ...string[]]).default("starter"),
+  owner_name: z.string().trim().max(120).optional().or(z.literal("")),
+  owner_email: z.string().trim().email(),
+  menu: menuSchema.nullable().optional(),
+  /** When true, create the business but do not send the owner invite yet. */
+  defer_invite: z.boolean().optional(),
+})
+
+export type OnboardInput = z.infer<typeof onboardSchema>
+
+/**
+ * POST /api/admin/onboard — create a tenant.
+ * Creates the business (status "invited" or "draft"), the owner staff row, and
+ * sends the owner invite. Returns { business_id, slug, invite_sent, warning? }.
+ */
 export async function POST(req: NextRequest) {
-  // Only super admins can onboard new businesses
-  const role = await getUserRole()
-  if (!role?.is_super_admin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
   try {
-    const body = await req.json()
-    const { name, slug, address, timezone, prep_time_minutes, owner_name, owner_email, plan, menu } = body
-    const normalizedOwnerEmail = normalizeEmail(owner_email)
-
-    if (!name || !slug || !normalizedOwnerEmail) {
-      return NextResponse.json({ error: "name, slug, and owner_email are required" }, { status: 400 })
+    const session = await apiRequirePlatformAdmin()
+    const parsed = onboardSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) {
+      throw new ApiError(400, parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "))
     }
-
+    const input = parsed.data
+    const ownerEmail = normalizeEmail(input.owner_email)
+    const slug = input.slug || slugify(input.name)
     const supabase = createSupabaseServerClient()
 
-    // Prevent accidental duplicate submissions for the same business owner/name pair
-    const { data: existingBusiness } = await supabase
+    const { data: slugTaken } = await supabase.from("businesses").select("id").eq("slug", slug).maybeSingle()
+    if (slugTaken) throw new ApiError(409, "That slug is already taken.")
+
+    const { data: dup } = await supabase
       .from("businesses")
       .select("id")
-      .eq("owner_email", normalizedOwnerEmail)
-      .ilike("name", name)
+      .eq("owner_email", ownerEmail)
+      .ilike("name", input.name)
       .maybeSingle()
+    if (dup) throw new ApiError(409, "A business with this name and owner already exists.")
 
-    if (existingBusiness) {
-      return NextResponse.json(
-        { error: "A business with this owner email and name already exists." },
-        { status: 409 }
-      )
-    }
-
-    // Check slug is unique
-    const { data: existing } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("slug", slug)
-      .single()
-
-    if (existing) {
-      return NextResponse.json({ error: "Slug already taken" }, { status: 409 })
-    }
-
-    // Create the business
+    const status = input.defer_invite ? "draft" : "invited"
     const { data: biz, error: bizErr } = await supabase
       .from("businesses")
       .insert({
-        name,
+        name: input.name,
         slug,
-        address: address ?? null,
-        timezone: timezone ?? "America/New_York",
-        prep_time_minutes: prep_time_minutes ?? 15,
-        plan: plan ?? "starter",
-        owner_email: normalizedOwnerEmail,
-        menu: menu ?? null,
+        address: input.address || null,
+        timezone: input.timezone,
+        prep_time_minutes: input.prep_time_minutes,
+        plan: input.plan,
+        owner_email: ownerEmail,
+        menu: input.menu ?? null,
+        status,
+        is_active: false,
       })
-      .select("id")
+      .select("id, slug")
       .single()
+    if (bizErr || !biz) throw new ApiError(500, bizErr?.message ?? "Failed to create business.")
 
-    if (bizErr || !biz) {
-      console.error("[admin/onboard] business insert:", bizErr)
-      return NextResponse.json({ error: bizErr?.message ?? "Failed to create business" }, { status: 500 })
-    }
-
-    // Create staff record for owner (no user_id yet — pending invite)
-    const { error: staffErr } = await supabase.from("businesses_staff").insert({
-      business_id: biz.id,
-      email: normalizedOwnerEmail,
-      name: owner_name ?? null,
-      role: "owner",
-      is_super_admin: false,
+    await logAudit({
+      action: "business.created",
+      session,
+      businessId: biz.id,
+      targetType: "business",
+      targetId: biz.id,
+      metadata: { businessName: input.name, slug, plan: input.plan, ownerEmail },
     })
 
-    if (staffErr) {
-      console.error("[admin/onboard] staff insert:", staffErr)
-      // Don't fail — business was created, staff row can be fixed
-    }
+    let inviteSent = false
+    let warning: string | undefined
 
-    // Send invite email via Supabase Auth
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
-    if (process.env.VERCEL_ENV === "production" && appUrl.includes("localhost")) {
-      return NextResponse.json(
-        {
-          error:
-            "NEXT_PUBLIC_APP_URL is localhost in production. Update the Vercel env var and the Supabase Auth Site URL before sending invites.",
-        },
-        { status: 500 }
-      )
-    }
-    const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(normalizedOwnerEmail, {
-      redirectTo: `${appUrl}/invite`,
-      data: { business_id: biz.id, role: "owner", name: owner_name ?? "" },
-    })
-
-    if (inviteErr) {
-      console.error("[admin/onboard] invite error:", inviteErr)
-
-      const msg = inviteErr.message.toLowerCase()
-      if (msg.includes("already") && (msg.includes("registered") || msg.includes("exists") || msg.includes("confirmed"))) {
-        return NextResponse.json({
-          ok: true,
-          business_id: biz.id,
-          invite_sent: false,
-          warning:
-            "Business created. Owner already has an account, so no new invite was sent. Ask them to sign in at /login.",
-        })
-      }
-
-      return NextResponse.json({
-        ok: true,
+    if (input.defer_invite) {
+      // Create the owner row without emailing.
+      await supabase.from("businesses_staff").insert({
         business_id: biz.id,
-        invite_sent: false,
-        warning: "Business created but invite failed: " + inviteErr.message,
+        email: ownerEmail,
+        name: input.owner_name || null,
+        role: "owner",
+        status: "invited",
+        invited_by: session.user.id,
       })
+    } else {
+      try {
+        const result = await inviteStaff({
+          businessId: biz.id,
+          email: ownerEmail,
+          name: input.owner_name || null,
+          role: "owner",
+          invitedBy: session.user.id,
+          origin: req.nextUrl.origin,
+        })
+        inviteSent = result.emailSent
+        warning = result.warning
+        if (result.linkedExisting) {
+          await supabase.from("businesses").update({ status: "active", activated_at: new Date().toISOString() }).eq("id", biz.id)
+        }
+        await logAudit({
+          action: "staff.invited",
+          session,
+          businessId: biz.id,
+          targetType: "staff",
+          targetId: result.staffId,
+          metadata: { email: ownerEmail, role: "owner", emailSent: result.emailSent },
+        })
+      } catch (err) {
+        warning = `Business created but the owner invite failed: ${err instanceof Error ? err.message : "unknown error"}`
+      }
     }
 
-    return NextResponse.json({ ok: true, business_id: biz.id, invite_sent: true })
-  } catch (err: any) {
-    console.error("[admin/onboard]", err)
-    return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 })
+    return NextResponse.json({ ok: true, business_id: biz.id, slug: biz.slug, invite_sent: inviteSent, warning })
+  } catch (error) {
+    return apiError(error)
   }
 }

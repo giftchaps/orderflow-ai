@@ -137,6 +137,10 @@ FOR EACH ROW EXECUTE FUNCTION activate_staff_on_link();
 -- ----------------------------------------------------------------------------
 -- 4. Orders: lifecycle timestamps, per-business order numbers, events
 -- ----------------------------------------------------------------------------
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_name      TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal           NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS total              NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency           TEXT NOT NULL DEFAULT 'USD';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS accepted_at        TIMESTAMPTZ;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS ready_at           TIMESTAMPTZ;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at       TIMESTAMPTZ;
