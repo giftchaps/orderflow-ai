@@ -50,12 +50,17 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  container,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** Portal target. Defaults to document.body — pass a scoped theme root (e.g. a
+   *  themed wrapper element) so the dialog inherits CSS variables overridden there
+   *  instead of falling back to the global :root theme. */
+  container?: HTMLElement | null
 }) {
   return (
-    <DialogPortal data-slot="dialog-portal">
+    <DialogPortal data-slot="dialog-portal" container={container}>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"

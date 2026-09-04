@@ -46,10 +46,12 @@ type Props = {
   assignable: BusinessRole[]
   /** True for platform admins — unlocks owner management. */
   canManageOwner: boolean
+  /** False hides role-change/disable/remove for every row (e.g. a manager, who may only invite/resend). Default true. */
+  canManageRoles?: boolean
   currentUserId?: string | null
 }
 
-export function TeamManager({ staff, apiBase, assignable, canManageOwner, currentUserId }: Props) {
+export function TeamManager({ staff, apiBase, assignable, canManageOwner, canManageRoles = true, currentUserId }: Props) {
   const router = useRouter()
   const [inviting, setInviting] = useState(false)
   const [form, setForm] = useState<{ email: string; name: string; role: BusinessRole }>({
@@ -122,7 +124,7 @@ export function TeamManager({ staff, apiBase, assignable, canManageOwner, curren
                 const status = membershipStatus(m)
                 const isSelf = Boolean(currentUserId && m.user_id === currentUserId)
                 const isOwner = m.role === "owner"
-                const locked = isOwner && !canManageOwner
+                const locked = (isOwner && !canManageOwner) || !canManageRoles
                 const busy = pendingId === m.id
                 return (
                   <TableRow key={m.id}>
@@ -181,7 +183,13 @@ export function TeamManager({ staff, apiBase, assignable, canManageOwner, curren
                             </>
                           )}
                           {(locked || isSelf) && status !== "invited" && (
-                            <DropdownMenuItem disabled>{isSelf ? "You cannot edit yourself" : "Owner is platform-managed"}</DropdownMenuItem>
+                            <DropdownMenuItem disabled>
+                              {isSelf
+                                ? "You cannot edit yourself"
+                                : !canManageRoles
+                                  ? "Only an owner can manage roles"
+                                  : "Owner is platform-managed"}
+                            </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>

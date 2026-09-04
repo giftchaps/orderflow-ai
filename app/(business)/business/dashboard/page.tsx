@@ -26,7 +26,10 @@ export default async function BusinessDashboardPage() {
     supabase.from("orders").select("id, order_number, status, channel, placed_at, items").eq("business_id", businessId).order("placed_at", { ascending: false }).limit(5),
   ])
 
-  const isLive = !!(business?.phone_number || business?.vapi_assistant_id)
+  // Matches the admin Agent tab's "connected" check (components/admin/business-detail/agent-panel.tsx):
+  // a phone number with no assistant (or vice versa) can't actually take calls,
+  // so this used to show "Live" while the admin console correctly said "not connected."
+  const isLive = !!(business?.phone_number && business?.vapi_assistant_id)
   const kitchenUrl = business?.slug ? `/display/${business.slug}` : null
 
   const stats = [

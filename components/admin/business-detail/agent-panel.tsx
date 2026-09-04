@@ -118,12 +118,14 @@ export function AgentPanel({ business }: { business: AdminBusiness }) {
         </div>
         <dl className="flex flex-col gap-2 text-sm">
           <Row label="Business ID" value={business.id} mono />
-          <Row label="Webhook" value="POST /api/orders" mono />
-          <Row label="Auth" value="Bearer SUPABASE_SERVICE_ROLE_KEY" mono />
+          <Row label="Vapi webhook" value="POST /webhook/vapi (backend)" mono />
+          <Row label="Writes orders via" value="SUPABASE_SERVICE_ROLE_KEY, direct" mono />
         </dl>
         <p className="text-pretty text-xs text-muted-foreground">
-          The backend resolves the tenant from <code className="font-mono">business_id</code> in the payload (or the Vapi
-          assistant ID). See <code className="font-mono">docs/API_CONTRACT.md</code>.
+          The voice backend is a separate FastAPI service that writes orders straight to Supabase — it does not call this
+          app&apos;s API. It currently serves a single hardcoded business (<code className="font-mono">ORDERFLOW_BUSINESS_ID</code>),
+          so the assistant ID saved here is informational until the backend is made multi-tenant. See{" "}
+          <code className="font-mono">docs/API_CONTRACT.md</code>.
         </p>
       </Card>
     </div>

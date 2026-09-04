@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { createClient } from "@supabase/supabase-js"
-import { signDisplayToken } from "@/lib/kds-token"
+import { createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
+import { hasPin, signDisplayToken, verifyPin } from "@/lib/kds-token"
 
 export const dynamic = "force-dynamic"
 
@@ -10,13 +10,6 @@ const SLUG_RE = /^[a-z0-9-]{1,80}$/
 const bodySchema = z.object({
   pin: z.string().max(8),
 })
-
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Supabase not configured")
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-}
 
 export async function POST(
   request: NextRequest,
@@ -35,43 +28,29 @@ export async function POST(
     return NextResponse.json({ ok: false, message: "PIN must be 4–8 digits." }, { status: 400 })
   }
 
-  let supabase: ReturnType<typeof getSupabase>
+  let supabase: ReturnType<typeof createSupabaseServerClientFromEnv>
   try {
-    supabase = getSupabase()
+    supabase = createSupabaseServerClientFromEnv()
   } catch {
     return NextResponse.json({ ok: false, message: "Server not configured." }, { status: 500 })
   }
 
   const { data: business, error: businessError } = await supabase
     .from("businesses")
-    .select("display_pin")
+    .select("id, display_pin, display_pin_hash")
     .eq("slug", slug)
-    .single()
+    .maybeSingle()
 
-  if (businessError?.message.includes("display_pin")) {
-    const { data: fallbackBusiness } = await supabase
-      .from("businesses")
-      .select("id")
-      .eq("slug", slug)
-      .single()
-
-    if (!fallbackBusiness) {
-      return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
-    }
-
-    return NextResponse.json({ ok: true, token: signDisplayToken(slug) })
-  }
-
-  if (!business) {
+  if (businessError || !business) {
     return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
   }
 
-  // If no PIN is set, allow access freely
-  if (!business.display_pin) {
+  // If no PIN is set, allow access freely.
+  if (!hasPin(business)) {
     return NextResponse.json({ ok: true, token: signDisplayToken(slug) })
   }
 
-  if (!body.pin || body.pin !== business.display_pin) {
+  if (!body.pin || !verifyPin(business.id, body.pin, business)) {
     return NextResponse.json({ ok: false, message: "Incorrect PIN." }, { status: 401 })
   }
 
