@@ -3,6 +3,7 @@ import json
 import hmac
 import hashlib
 import logging
+from typing import Optional
 import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
@@ -120,7 +121,7 @@ RULES:
 Transcript: {transcript}"""
 
 
-def extract_order_items(transcript: str) -> list:
+def extract_order_items(transcript: str, business_name: str) -> list:
     try:
         response = openai_client.chat.completions.create(
             model="gpt-4o",
@@ -128,7 +129,7 @@ def extract_order_items(transcript: str) -> list:
                 {
                     "role": "user",
                     "content": EXTRACTION_PROMPT.format(
-                        business_name=BUSINESS_NAME,
+                        business_name=business_name,
                         transcript=transcript,
                     ),
                 }
@@ -149,6 +150,65 @@ def extract_order_items(transcript: str) -> list:
     except Exception as e:
         logger.error("Order extraction failed: %s", e)
         return []
+
+
+def resolve_business(assistant_id: Optional[str]) -> dict:
+    """
+    Resolve which business a call belongs to from the Vapi assistant ID that
+    handled it. This backend used to stamp every order with one hardcoded
+    ORDERFLOW_BUSINESS_ID regardless of which business's phone number was
+    actually called — fine for a single tenant, silently wrong the moment a
+    second business exists, since their calls would still be filed under the
+    first business (or fail to insert if the ID didn't match any row), so
+    they'd never show up on that business's own dashboard.
+
+    Looks up businesses.vapi_assistant_id (set per-business in the admin
+    console's Agent tab) first. Falls back to the legacy env var so a
+    business that hasn't had its assistant wired up yet — or a webhook
+    payload that doesn't carry an assistant id — still resolves to *some*
+    real business rather than failing the whole call.
+    """
+    if assistant_id:
+        try:
+            result = (
+                supabase.table("businesses")
+                .select("id, name, phone_number")
+                .eq("vapi_assistant_id", assistant_id)
+                .limit(1)
+                .maybe_single()
+                .execute()
+            )
+            if result and result.data:
+                return result.data
+        except Exception as e:
+            logger.error("Business lookup by assistant_id=%s failed: %s", assistant_id, e)
+        logger.warning(
+            "No business has vapi_assistant_id=%s — falling back to ORDERFLOW_BUSINESS_ID=%s",
+            assistant_id, BUSINESS_ID,
+        )
+    else:
+        logger.warning(
+            "Webhook payload had no assistant id — falling back to ORDERFLOW_BUSINESS_ID=%s",
+            BUSINESS_ID,
+        )
+
+    try:
+        result = (
+            supabase.table("businesses")
+            .select("id, name, phone_number")
+            .eq("id", BUSINESS_ID)
+            .limit(1)
+            .maybe_single()
+            .execute()
+        )
+        if result and result.data:
+            return result.data
+    except Exception as e:
+        logger.error("Fallback business lookup for id=%s failed: %s", BUSINESS_ID, e)
+
+    # Last resort: env-var values, so the call still gets an order recorded
+    # even if BUSINESS_ID doesn't match any row in businesses.
+    return {"id": BUSINESS_ID, "name": BUSINESS_NAME, "phone_number": BUSINESS_PHONE}
 
 
 @app.post("/webhook/vapi")
@@ -196,6 +256,25 @@ async def vapi_webhook(request: Request):
         or "unknown"
     )
 
+    # Extract the Vapi assistant ID that handled this call — this is what lets
+    # a single deployed backend serve every business instead of just one.
+    # Vapi has put this in different spots across payload versions, so check
+    # each one we've seen documented/observed.
+    assistant_id = (
+        message.get("assistant", {}).get("id")
+        or message.get("call", {}).get("assistantId")
+        or message.get("call", {}).get("assistant", {}).get("id")
+        or body.get("assistant", {}).get("id")
+        or None
+    )
+    logger.info("ASSISTANT ID: %s", assistant_id)
+
+    business = resolve_business(assistant_id)
+    business_id = business["id"]
+    business_name = business.get("name") or BUSINESS_NAME
+    business_phone = business.get("phone_number") or BUSINESS_PHONE
+    logger.info("Resolved business: id=%s name=%s", business_id, business_name)
+
     # Log artifact structure so we can see exactly where the transcript lives
     artifact = message.get("artifact", {})
     logger.info("ARTIFACT KEYS: %s", list(artifact.keys()) if isinstance(artifact, dict) else artifact)
@@ -216,15 +295,18 @@ async def vapi_webhook(request: Request):
     # Extract Vapi call ID for idempotency — present at message.call.id
     vapi_call_id = message.get("call", {}).get("id") or None
 
-    logger.info("Processing end-of-call-report for %s (call_id=%s)", customer_phone, vapi_call_id)
+    logger.info(
+        "Processing end-of-call-report for %s (call_id=%s, business_id=%s)",
+        customer_phone, vapi_call_id, business_id,
+    )
 
     # Extract structured order items via GPT-4o
-    items = extract_order_items(transcript)
+    items = extract_order_items(transcript, business_name)
 
     # Insert order — ON CONFLICT on (business_id, vapi_call_id) means retried
     # webhooks for the same call are silently ignored rather than creating duplicates.
     order_data = {
-        "business_id": BUSINESS_ID,
+        "business_id": business_id,
         "channel": "phone",
         "customer_phone": customer_phone,
         "items": items,
@@ -250,11 +332,11 @@ async def vapi_webhook(request: Request):
             order_number = order.get("order_number", "")
             item_count = len(items)
             item_summary = f"{item_count} item{'s' if item_count != 1 else ''}"
-            contact = f" Questions? Call {BUSINESS_PHONE}." if BUSINESS_PHONE else ""
+            contact = f" Questions? Call {business_phone}." if business_phone else ""
             send_sms(
                 to=customer_phone,
                 message=(
-                    f"Hi! Your order #{order_number} has been received at {BUSINESS_NAME} "
+                    f"Hi! Your order #{order_number} has been received at {business_name} "
                     f"({item_summary}). We'll text you when it's ready.{contact}"
                 ),
             )
