@@ -3,6 +3,7 @@ import json
 import hmac
 import hashlib
 import logging
+import asyncio
 from typing import Optional
 import requests
 from dotenv import load_dotenv
@@ -47,8 +48,13 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 
-def send_sms(to: str, message: str) -> None:
-    """Send an SMS via Telnyx. Silently logs on failure so the webhook always returns 200."""
+def send_sms(to: str, message: str, from_number: Optional[str] = None) -> None:
+    """Send an SMS via Telnyx. Silently logs on failure so the webhook always returns 200.
+
+    from_number lets each business send confirmations from its own number
+    (businesses.sms_from_number, set in the admin console's Agent tab)
+    instead of every business sharing the one platform-wide Telnyx number.
+    """
     try:
         response = requests.post(
             "https://api.telnyx.com/v2/messages",
@@ -57,7 +63,7 @@ def send_sms(to: str, message: str) -> None:
                 "Content-Type": "application/json",
             },
             json={
-                "from": TELNYX_FROM_NUMBER,
+                "from": from_number or TELNYX_FROM_NUMBER,
                 "to": to,
                 "text": message,
             },
@@ -70,70 +76,77 @@ def send_sms(to: str, message: str) -> None:
     except Exception as e:
         logger.error("SMS send error: %s", e)
 
-EXTRACTION_PROMPT = """You are an order extraction system for {business_name}.
+EXTRACTION_PROMPT_BASE = """You are an order extraction system for {business_name}.
 Extract the food order from this transcript and return a JSON object.
 Return a JSON object with an "items" array.
 Format: {{"items": [{{"name": "item name", "qty": 1, "bread": "Hard Roll",
 "mods": [{{"type": "add", "item": "extra cheese"}},
          {{"type": "remove", "item": "cherry peppers"}}]}}]}}
 
-BREAD OPTIONS (use exactly these values):
-- "Hard Roll"
-- "6-inch Sub"
-- "12-inch Sub"
-- "Plain Wrap" (use for: plain wrap, regular wrap, white wrap, or just "wrap" with no type specified)
-- "Spinach Wrap"
-- "Whole Wheat Wrap" (use for: wheat wrap, whole wheat, whole wheat wrap)
-- Normalize spoken sizes: "six inch" -> "6-inch Sub", "twelve inch" -> "12-inch Sub"
-
-MENU ITEMS — always use the canonical name on the left, never the alias:
-Cold Deli: Buffalo Chicken Salad, Capicola Chicken Salad, Chicken Salad, Corned Beef, Ham, DiLussi Salami, Turkey, Pepperoni, Sopressata Hot, Sopressata Sweet, Tuna Salad
-Hot Deli: Chicken Cutlet, Buffalo Chicken Cutlet, Grilled Chicken, Grilled Buffalo Chicken, Grilled Cheese, BLT
-Combos: Chicken Parmesan, Eggplant Parmesan, Meatball Parmesan, Home-Cooked Roast Beef, Pastrami, Prosciutto, Steak, Sweet Italian Combo, Hot Italian Combo, The Deluxe
-Premium: Alaina Marie, Cousin Vinny, Kerbear, Murph Man, The Parm, Provy, Rudenzano, Michelangelo, Rabe Thompson, Sinatra, Sausage and Peppers, Wes
-Signature: Ainsley Joyce, De Niro, Donatello, Galileo, Leonardo, Inferno, Nana, The Pop, Raphael, Tuna Bomb
-Salads (no bread): Balsamic Salad, Caesar Salad, Nana Salad, Greek Salad, Mixed Greens and Tuna Salad, De Niro Salad
-Breakfast: Breakfast on a Roll, Double Breakfast on a Roll, Italian Bomber, Breakfast Provy, Double Egg Sandwich, 4 Eggs on a Sub, Assorted Muffins, Buttered Roll, Bagel, Bagel with Cream Cheese, Side Homefries (Small), Side Homefries (Large)
-
-ALIAS EXAMPLES:
-- "chicken parm" -> "Chicken Parmesan"
-- "meatball parm" or "meatball sub" -> "Meatball Parmesan"
-- "eggplant parm" -> "Eggplant Parmesan"
-- "provy" or "provi" -> "Provy"
-- "tuna bomb" or "tunabomb" -> "Tuna Bomb"
-- "michelangelo" or "mike" or "mikey" -> "Michelangelo"
-- "roast beef" -> "Home-Cooked Roast Beef"
-- "hot italian" -> "Hot Italian Combo"
-- "sweet italian" -> "Sweet Italian Combo"
-- "buff chicken cutlet" or "buffalo cutlet" -> "Buffalo Chicken Cutlet"
-- "greek salad" or "greek" -> "Greek Salad"
-- "caesar" -> "Caesar Salad"
-- "bomber" -> "Italian Bomber"
-- "breakfast provy" -> "Breakfast Provy"
+{menu_section}
 
 RULES:
+- Always use the canonical item name from the menu above, never the customer's phrasing — match it
+  against the item's listed aliases (if any) rather than guessing
 - qty is the number of that item ordered (default 1)
-- Salads do not have a bread field — omit it or set to null
+- Only include "bread" when the menu above shows bread/size options for that item; omit it otherwise
 - mods type must be "add" or "remove"
 - mods should capture additions, removals, substitutions, and dressing choices
+- If an item doesn't match anything on the menu, use the customer's own words for its name rather
+  than inventing a menu item
 - If no food order was placed, return {{"items": []}}
 
 Transcript: {transcript}"""
 
+NO_MENU_SECTION = (
+    "MENU: no menu is on file for this business yet — extract items exactly as the "
+    "customer described them, using their own words for each item's name."
+)
 
-def extract_order_items(transcript: str, business_name: str) -> list:
+
+def render_menu_section(menu: Optional[dict]) -> str:
+    """
+    Build the MENU section of the extraction prompt from a business's own
+    businesses.menu column (the same structured menu it manages from the
+    Menu page in the app, and the same data the live Vapi conversation
+    prompt is already built from — see app/api/business/menu/route.ts).
+
+    This used to be one hardcoded menu (one deli's actual items, aliases,
+    and bread options) baked into the prompt for every business's calls.
+    That worked for the one business it was written for and would have
+    produced garbage extractions for anyone else.
+    """
+    categories = (menu or {}).get("categories") or []
+    lines = []
+    for cat in categories:
+        items = [i for i in (cat.get("items") or []) if i.get("active", True) is not False]
+        if not items:
+            continue
+        entries = []
+        for item in items:
+            name = (item.get("name") or "").strip()
+            if not name:
+                continue
+            aliases = [a.strip() for a in (item.get("aliases") or []) if a and a.strip()]
+            entries.append(f"{name} (also called: {', '.join(aliases)})" if aliases else name)
+        if entries:
+            lines.append(f"{cat.get('name', 'Menu')}: " + ", ".join(entries))
+
+    if not lines:
+        return NO_MENU_SECTION
+    return "MENU ITEMS — always use the canonical name on the left, never an alias:\n" + "\n".join(lines)
+
+
+def extract_order_items(transcript: str, business_name: str, menu: Optional[dict]) -> list:
     try:
+        prompt = EXTRACTION_PROMPT_BASE.format(
+            business_name=business_name,
+            menu_section=render_menu_section(menu),
+            transcript=transcript,
+        )
         response = openai_client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {
-                    "role": "user",
-                    "content": EXTRACTION_PROMPT.format(
-                        business_name=business_name,
-                        transcript=transcript,
-                    ),
-                }
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0,
             response_format={"type": "json_object"},
         )
@@ -172,7 +185,7 @@ def resolve_business(assistant_id: Optional[str]) -> dict:
         try:
             result = (
                 supabase.table("businesses")
-                .select("id, name, phone_number")
+                .select("id, name, phone_number, sms_from_number, menu")
                 .eq("vapi_assistant_id", assistant_id)
                 .limit(1)
                 .maybe_single()
@@ -195,7 +208,7 @@ def resolve_business(assistant_id: Optional[str]) -> dict:
     try:
         result = (
             supabase.table("businesses")
-            .select("id, name, phone_number")
+            .select("id, name, phone_number, sms_from_number, menu")
             .eq("id", BUSINESS_ID)
             .limit(1)
             .maybe_single()
@@ -208,7 +221,7 @@ def resolve_business(assistant_id: Optional[str]) -> dict:
 
     # Last resort: env-var values, so the call still gets an order recorded
     # even if BUSINESS_ID doesn't match any row in businesses.
-    return {"id": BUSINESS_ID, "name": BUSINESS_NAME, "phone_number": BUSINESS_PHONE}
+    return {"id": BUSINESS_ID, "name": BUSINESS_NAME, "phone_number": BUSINESS_PHONE, "sms_from_number": None, "menu": None}
 
 
 @app.post("/webhook/vapi")
@@ -269,10 +282,19 @@ async def vapi_webhook(request: Request):
     )
     logger.info("ASSISTANT ID: %s", assistant_id)
 
-    business = resolve_business(assistant_id)
+    # resolve_business (and everything else below that hits Supabase/OpenAI/Telnyx)
+    # is a plain blocking call. Running it directly here would freeze this whole
+    # process's event loop until it returns — fine with one call at a time, but
+    # with several businesses now sharing this one backend, two calls ending
+    # within moments of each other would queue up and process one after another
+    # instead of concurrently. asyncio.to_thread hands each blocking call to a
+    # worker thread so this request's slow I/O doesn't block anyone else's.
+    business = await asyncio.to_thread(resolve_business, assistant_id)
     business_id = business["id"]
     business_name = business.get("name") or BUSINESS_NAME
     business_phone = business.get("phone_number") or BUSINESS_PHONE
+    business_sms_from = business.get("sms_from_number")
+    business_menu = business.get("menu")
     logger.info("Resolved business: id=%s name=%s", business_id, business_name)
 
     # Log artifact structure so we can see exactly where the transcript lives
@@ -300,8 +322,8 @@ async def vapi_webhook(request: Request):
         customer_phone, vapi_call_id, business_id,
     )
 
-    # Extract structured order items via GPT-4o
-    items = extract_order_items(transcript, business_name)
+    # Extract structured order items via GPT-4o, using this business's own menu
+    items = await asyncio.to_thread(extract_order_items, transcript, business_name, business_menu)
 
     # Insert order — ON CONFLICT on (business_id, vapi_call_id) means retried
     # webhooks for the same call are silently ignored rather than creating duplicates.
@@ -315,30 +337,35 @@ async def vapi_webhook(request: Request):
         **({"vapi_call_id": vapi_call_id} if vapi_call_id else {}),
     }
 
-    result = (
-        supabase.table("orders")
-        .upsert(order_data, on_conflict="business_id,vapi_call_id", ignore_duplicates=True)
-        .execute()
-        if vapi_call_id
-        else supabase.table("orders").insert(order_data).execute()
-    )
+    def save_order():
+        if vapi_call_id:
+            return (
+                supabase.table("orders")
+                .upsert(order_data, on_conflict="business_id,vapi_call_id", ignore_duplicates=True)
+                .execute()
+            )
+        return supabase.table("orders").insert(order_data).execute()
+
+    result = await asyncio.to_thread(save_order)
 
     if result.data:
         order = result.data[0]
         logger.info("Order saved — id: %s", order.get("id"))
 
-        # Send SMS confirmation to customer
+        # Send SMS confirmation to customer, from this business's own number when it has one
         if customer_phone and customer_phone != "unknown":
             order_number = order.get("order_number", "")
             item_count = len(items)
             item_summary = f"{item_count} item{'s' if item_count != 1 else ''}"
             contact = f" Questions? Call {business_phone}." if business_phone else ""
-            send_sms(
-                to=customer_phone,
-                message=(
+            await asyncio.to_thread(
+                send_sms,
+                customer_phone,
+                (
                     f"Hi! Your order #{order_number} has been received at {business_name} "
                     f"({item_summary}). We'll text you when it's ready.{contact}"
                 ),
+                business_sms_from,
             )
     else:
         logger.error("Supabase insert returned no data: %s", result)
