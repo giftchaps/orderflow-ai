@@ -123,9 +123,11 @@ export function AgentPanel({ business }: { business: AdminBusiness }) {
         </dl>
         <p className="text-pretty text-xs text-muted-foreground">
           The voice backend is a separate FastAPI service that writes orders straight to Supabase — it does not call this
-          app&apos;s API. It currently serves a single hardcoded business (<code className="font-mono">ORDERFLOW_BUSINESS_ID</code>),
-          so the assistant ID saved here is informational until the backend is made multi-tenant. See{" "}
-          <code className="font-mono">docs/API_CONTRACT.md</code>.
+          app&apos;s API. It resolves the business per call from the Vapi assistant ID above, so this must match a real
+          assistant in your Vapi dashboard, wired to send its end-of-call webhook to that backend, before calls to this
+          business will be attributed correctly. Until it&apos;s set, calls fall back to the backend&apos;s
+          <code className="font-mono"> ORDERFLOW_BUSINESS_ID</code> env var, which currently points at a different
+          business. See <code className="font-mono">docs/API_CONTRACT.md</code>.
         </p>
       </Card>
     </div>
