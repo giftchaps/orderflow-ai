@@ -18,3 +18,7 @@ node_modules
 .next/
 *.tsbuildinfo
 .DS_Store
+
+# Claude Code working files
+_claude_fix*.bundle
+Claude outputs/
