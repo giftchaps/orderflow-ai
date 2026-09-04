@@ -1,44 +1,55 @@
 import { NextRequest, NextResponse } from "next/server"
-import { normalizeEmail } from "@/lib/auth/normalize-email"
+import { z } from "zod"
+import { apiError, apiRequireSession, ApiError } from "@/lib/auth/guards"
+import { canInBusiness } from "@/lib/auth/session"
+import { resendTeamInvite } from "@/lib/staff-mutations"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { normalizeEmail } from "@/lib/auth/normalize-email"
 
+const bodySchema = z.object({
+  business_id: z.string().uuid(),
+  staff_id: z.string().uuid().optional(),
+  email: z.string().email().optional(),
+})
+
+/**
+ * POST /api/admin/resend-invite  { business_id, staff_id | email }
+ * Compatibility endpoint: platform admins or owners/managers of the business.
+ * Prefer /api/admin/businesses/:id/staff/:staffId (POST) or /api/business/staff/:staffId (POST).
+ */
 export async function POST(req: NextRequest) {
-  const { email, business_id } = await req.json()
-  const normalizedEmail = normalizeEmail(email)
+  try {
+    const session = await apiRequireSession()
+    const parsed = bodySchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) throw new ApiError(400, "business_id and staff_id or email are required.")
+    const { business_id, email } = parsed.data
+    let { staff_id } = parsed.data
 
-  const role = await getUserRole()
+    if (!canInBusiness(session, business_id, "staff.invite")) throw new ApiError(403, "Forbidden.")
 
-  // require either super admin, or an owner/manager for the target business
-  const allowedForBusiness =
-    role && role.business_id && role.business_id === business_id && (role.role === "owner" || role.role === "manager")
-
-  if (!role || (!role.is_super_admin && !allowedForBusiness)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
-  if (!normalizedEmail || !business_id) {
-    return NextResponse.json({ error: "email and business_id are required" }, { status: 400 })
-  }
-
-  const supabase = createSupabaseServerClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
-
-  const { error } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail, {
-    redirectTo: `${appUrl}/invite`,
-    data: { business_id, role: "owner" },
-  })
-
-  if (error) {
-    const msg = error.message.toLowerCase()
-    if (msg.includes("already") && (msg.includes("registered") || msg.includes("exists") || msg.includes("confirmed"))) {
-      return NextResponse.json({
-        ok: true,
-        warning: "Owner already has an account — ask them to sign in at /login directly.",
-      })
+    if (!staff_id) {
+      if (!email) throw new ApiError(400, "staff_id or email is required.")
+      const supabase = createSupabaseServerClient()
+      const { data } = await supabase
+        .from("businesses_staff")
+        .select("id")
+        .eq("business_id", business_id)
+        .eq("email", normalizeEmail(email))
+        .maybeSingle()
+      if (!data) throw new ApiError(404, "No pending invite for that email.")
+      staff_id = data.id
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+    if (!staff_id) throw new ApiError(400, "staff_id or email is required.")
 
-  return NextResponse.json({ ok: true })
+    const membership = session.memberships.find((m) => m.businessId === business_id)
+    const result = await resendTeamInvite(
+      { session, role: session.isPlatformAdmin ? "platform_admin" : membership!.role },
+      business_id,
+      staff_id,
+      req.nextUrl.origin
+    )
+    return NextResponse.json({ ok: true, ...result })
+  } catch (error) {
+    return apiError(error)
+  }
 }

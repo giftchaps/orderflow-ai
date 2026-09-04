@@ -1,20 +1,19 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { requireBusinessContext } from "@/lib/auth/guards"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { redirect } from "next/navigation"
 
 export default async function AnalyticsPage() {
-  const role = await getUserRole()
-  if (!role?.business_id) redirect("/login")
+  const ctx = await requireBusinessContext("analytics.view")
 
   const supabase = createSupabaseServerClient()
-  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const monthStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [{ data: orders }, { data: allOrders }] = await Promise.all([
-    supabase.from("orders").select("placed_at, channel, items, status").eq("business_id", role.business_id).gte("placed_at", monthStart).order("placed_at", { ascending: true }),
-    supabase.from("orders").select("id", { count: "exact", head: false }).eq("business_id", role.business_id),
-  ])
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("placed_at, channel, items, status")
+    .eq("business_id", ctx.businessId)
+    .gte("placed_at", monthStart)
+    .order("placed_at", { ascending: true })
 
   // Orders by channel
   const byChannel: Record<string, number> = {}

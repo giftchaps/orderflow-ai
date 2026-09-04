@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { getSession, canInBusiness } from "@/lib/auth/session"
 
 function buildSystemPrompt(businessName: string, menu: any): string {
   const categories = menu?.categories ?? []
@@ -42,8 +42,8 @@ Rules:
 }
 
 export async function PUT(req: NextRequest) {
-  const callerRole = await getUserRole()
-  if (!callerRole) {
+  const session = await getSession()
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -53,7 +53,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "business_id and menu are required" }, { status: 400 })
     }
 
-    if (!callerRole.is_super_admin && callerRole.business_id !== business_id) {
+    if (!canInBusiness(session, business_id, "menu.edit")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

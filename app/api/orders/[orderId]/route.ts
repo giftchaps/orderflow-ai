@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { updateOrderStatus } from "@/lib/orders"
+import { updateOrderStatus } from "@/lib/orders-server"
 import { createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { getSession } from "@/lib/auth/session"
 import { verifyDisplayToken } from "@/lib/kds-token"
 
 export const dynamic = "force-dynamic"
@@ -45,20 +45,20 @@ export async function PATCH(
   const slug = searchParams.get("slug")
   const displayToken = request.headers.get("x-kds-token")
 
-  const callerRole = await getUserRole()
+  const session = await getSession()
 
   // Resolve business_id: prefer authenticated session, otherwise require a valid display token.
   let resolvedBusinessId: string | null = null
   let hasDisplayAccess = false
 
-  if (callerRole?.business_id) {
-    resolvedBusinessId = callerRole.business_id
+  if (session?.activeBusinessId) {
+    resolvedBusinessId = session.activeBusinessId
   } else if (slug) {
     if (!SLUG_RE.test(slug)) {
       return NextResponse.json({ ok: false, message: "Invalid slug." }, { status: 400 })
     }
     hasDisplayAccess = !!displayToken && verifyDisplayToken(slug, displayToken)
-    if (!callerRole?.is_super_admin && !hasDisplayAccess) {
+    if (!session?.isPlatformAdmin && !hasDisplayAccess) {
       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
     }
 
@@ -79,7 +79,7 @@ export async function PATCH(
     const { orderId } = await params
 
     // Verify the order belongs to the resolved business
-    if (!callerRole?.is_super_admin) {
+    if (!session?.isPlatformAdmin) {
       const supabase = createSupabaseServerClientFromEnv()
       const { data: order } = await supabase
         .from("orders")
@@ -92,7 +92,11 @@ export async function PATCH(
     }
     const body = bodySchema.parse(await request.json())
 
-    await updateOrderStatus(orderId, body.status, resolvedBusinessId)
+    await updateOrderStatus(resolvedBusinessId, orderId, body.status, {
+      type: session ? "staff" : "display",
+      userId: session?.user.id ?? null,
+      email: session?.user.email ?? null,
+    })
 
     // Send SMS when order is marked ready
     if (body.status === "ready") {

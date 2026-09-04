@@ -3,7 +3,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Professional Kitchen Display System - Dark Theme */
+/* ---------------------------------------------------------------------------
+   OrderFlow AI design tokens
+
+   Two surfaces share one token vocabulary:
+     :root / .theme-kds     dark, high-contrast — kitchen display (default)
+     .theme-portal          light operations console — admin + business portals + auth
+
+   Brand: a single warm signal red used for primary actions and the active nav.
+   Status: pending (amber) / making (red-orange) / ready (green) mirror the KDS.
+   --------------------------------------------------------------------------- */
+
 :root {
   --background: oklch(0.11 0.005 260);
   --foreground: oklch(0.98 0 0);
@@ -24,7 +34,16 @@
   --border: oklch(0.25 0.005 260);
   --input: oklch(0.18 0.005 260);
   --ring: oklch(0.55 0 0);
-  
+
+  --brand: oklch(0.55 0.2 25);
+  --brand-foreground: oklch(0.99 0 0);
+  --success: oklch(0.65 0.18 145);
+  --success-foreground: oklch(0.12 0.02 145);
+  --warning: oklch(0.8 0.16 85);
+  --warning-foreground: oklch(0.2 0.04 85);
+  --info: oklch(0.7 0.15 230);
+  --info-foreground: oklch(0.15 0.03 230);
+
   /* Status colors */
   --status-pending: oklch(0.8 0.16 85);
   --status-making: oklch(0.65 0.22 25);
@@ -32,13 +51,13 @@
   --status-pending-bg: oklch(0.25 0.04 85);
   --status-making-bg: oklch(0.25 0.05 25);
   --status-ready-bg: oklch(0.2 0.04 145);
-  
+
   --chart-1: oklch(0.65 0.18 145);
   --chart-2: oklch(0.8 0.16 85);
   --chart-3: oklch(0.65 0.22 25);
   --chart-4: oklch(0.65 0.2 280);
   --chart-5: oklch(0.7 0.15 200);
-  --radius: 0.75rem;
+  --radius: 0.625rem;
   --sidebar: oklch(0.13 0.005 260);
   --sidebar-foreground: oklch(0.98 0 0);
   --sidebar-primary: oklch(0.98 0 0);
@@ -69,19 +88,64 @@
   --border: oklch(0.25 0.005 260);
   --input: oklch(0.18 0.005 260);
   --ring: oklch(0.55 0 0);
-  --chart-1: oklch(0.65 0.18 145);
-  --chart-2: oklch(0.8 0.16 85);
-  --chart-3: oklch(0.65 0.22 25);
-  --chart-4: oklch(0.65 0.2 280);
-  --chart-5: oklch(0.7 0.15 200);
-  --sidebar: oklch(0.13 0.005 260);
-  --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.98 0 0);
-  --sidebar-primary-foreground: oklch(0.11 0.005 260);
-  --sidebar-accent: oklch(0.22 0.005 260);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.25 0.005 260);
-  --sidebar-ring: oklch(0.55 0 0);
+}
+
+/* Light operations console for admin/business portals and auth screens */
+.theme-portal {
+  --background: oklch(0.975 0.003 260);
+  --foreground: oklch(0.17 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0.01 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0.01 260);
+  --primary: oklch(0.55 0.2 25);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.945 0.004 260);
+  --secondary-foreground: oklch(0.25 0.01 260);
+  --muted: oklch(0.945 0.004 260);
+  --muted-foreground: oklch(0.5 0.01 260);
+  --accent: oklch(0.93 0.006 260);
+  --accent-foreground: oklch(0.2 0.01 260);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.005 260);
+  --input: oklch(0.9 0.005 260);
+  --ring: oklch(0.55 0.2 25);
+
+  --brand: oklch(0.55 0.2 25);
+  --brand-foreground: oklch(0.99 0 0);
+  --success: oklch(0.55 0.16 150);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.72 0.16 75);
+  --warning-foreground: oklch(0.2 0.04 75);
+  --info: oklch(0.55 0.15 240);
+  --info-foreground: oklch(0.99 0 0);
+
+  --status-pending: oklch(0.72 0.16 75);
+  --status-making: oklch(0.55 0.2 25);
+  --status-ready: oklch(0.55 0.16 150);
+  --status-pending-bg: oklch(0.96 0.04 85);
+  --status-making-bg: oklch(0.96 0.03 25);
+  --status-ready-bg: oklch(0.95 0.04 150);
+
+  --chart-1: oklch(0.55 0.2 25);
+  --chart-2: oklch(0.55 0.16 150);
+  --chart-3: oklch(0.72 0.16 75);
+  --chart-4: oklch(0.55 0.15 240);
+  --chart-5: oklch(0.6 0.12 300);
+
+  --sidebar: oklch(0.99 0.002 260);
+  --sidebar-foreground: oklch(0.17 0.01 260);
+  --sidebar-primary: oklch(0.55 0.2 25);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.945 0.004 260);
+  --sidebar-accent-foreground: oklch(0.2 0.01 260);
+  --sidebar-border: oklch(0.9 0.005 260);
+  --sidebar-ring: oklch(0.55 0.2 25);
+
+  background-color: var(--background);
+  color: var(--foreground);
+  color-scheme: light;
 }
 
 @theme inline {
@@ -107,6 +171,20 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-status-pending: var(--status-pending);
+  --color-status-making: var(--status-making);
+  --color-status-ready: var(--status-ready);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-making-bg: var(--status-making-bg);
+  --color-status-ready-bg: var(--status-ready-bg);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -139,11 +217,11 @@
   .animate-pulse-slow {
     animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-  
+
   .animate-flash {
     animation: flash 0.6s ease 3;
   }
-  
+
   .animate-blink {
     animation: blink 1s infinite;
   }

@@ -1,31 +1,23 @@
 import "server-only"
 
-import { createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { getServerEnv } from "@/lib/env"
 
-export function createSupabaseServerClient() {
+let cached: SupabaseClient | null = null
+
+/**
+ * Service-role Supabase client. Bypasses RLS.
+ * ONLY use inside server code paths that have already authorised the caller
+ * via `lib/auth/session.ts` (or a verified machine secret).
+ */
+export function createSupabaseServerClient(): SupabaseClient {
+  if (cached) return cached
   const env = getServerEnv()
-
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+  cached = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
   })
+  return cached
 }
 
-export function createSupabaseServerClientFromEnv() {
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
-}
+/** @deprecated use createSupabaseServerClient */
+export const createSupabaseServerClientFromEnv = createSupabaseServerClient

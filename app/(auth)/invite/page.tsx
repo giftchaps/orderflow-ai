@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone } from "lucide-react"
+import { AuthFrame } from "@/components/auth/auth-frame"
 
 export default function InvitePage() {
   const router = useRouter()
@@ -17,128 +17,95 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
 
-  // Supabase sends invite links with tokens in the URL hash.
-  // We must exchange them for a session before updateUser will work.
+  // Supabase invite links carry tokens in the URL hash; exchange them for a session.
   useEffect(() => {
     const supabase = createClient()
-
-    const exchangeToken = async () => {
-      const hash = window.location.hash
-      const params = new URLSearchParams(hash.replace("#", ""))
+    const run = async () => {
+      const params = new URLSearchParams(window.location.hash.replace("#", ""))
       const accessToken = params.get("access_token")
       const refreshToken = params.get("refresh_token")
-      const type = params.get("type")
 
-      if (accessToken && refreshToken && type === "invite") {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-        if (error) {
-          setError("Invalid or expired invite link. Please ask for a new one.")
-          return
-        }
-        // Clean up the hash so tokens aren't visible in the URL
+      if (accessToken && refreshToken) {
+        const { error: setErr } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        if (setErr) return setError("This invite link is invalid or has expired. Ask for a new one.")
         window.history.replaceState(null, "", window.location.pathname)
         setSessionReady(true)
-      } else {
-        // Check if there's already an active session (e.g. page refresh after token exchange)
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          setSessionReady(true)
-        } else {
-          setError("Invalid or expired invite link. Please ask for a new one.")
-        }
+        return
       }
-    }
 
-    exchangeToken()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session) setSessionReady(true)
+      else setError("This invite link is invalid or has expired. Ask for a new one.")
+    }
+    run()
   }, [])
 
-  const handleAccept = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleAccept = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     const supabase = createClient()
-
     const { error: updateError } = await supabase.auth.updateUser({ password })
-
     if (updateError) {
       setError(updateError.message)
       setLoading(false)
       return
     }
 
-    // Update staff record with name
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase
-        .from("businesses_staff")
-        .update({ name })
-        .eq("user_id", user.id)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    const res = await fetch("/api/auth/accept-invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, accessToken: session?.access_token }),
+    })
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string }
+      setError(body.error ?? "Could not finish setting up your account.")
+      setLoading(false)
+      return
     }
 
-    router.push("/business/dashboard")
+    router.replace("/auth/continue")
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-14 w-14 rounded-xl bg-[oklch(0.55_0.2_25)] flex items-center justify-center">
-            <Phone className="h-7 w-7 text-white" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight">OrderFlow AI</h1>
-            <p className="text-sm text-muted-foreground">You&apos;ve been invited to join</p>
-          </div>
+    <AuthFrame title="Accept your invitation" description="Choose a password to finish setting up your account.">
+      <form onSubmit={handleAccept} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="name">Your full name</Label>
+          <Input id="name" required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">At least 8 characters.</p>
         </div>
 
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Accept your invitation</CardTitle>
-            <CardDescription>Set up your account to get started</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAccept} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Your full name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Jane Smith"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Set a password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Choose a strong password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
+        {error && (
+          <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
-              {error && (
-                <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-                  {error}
-                </p>
-              )}
-
-              <Button type="submit" className="w-full" disabled={loading || !sessionReady}>
-                {loading ? "Setting up account..." : !sessionReady ? "Verifying invite..." : "Accept invitation"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <Button type="submit" disabled={loading || !sessionReady}>
+          {(loading || !sessionReady) && !error && <Loader2 className="size-4 animate-spin" />}
+          {loading ? "Setting up…" : !sessionReady ? "Verifying invite…" : "Accept invitation"}
+        </Button>
+      </form>
+    </AuthFrame>
   )
 }

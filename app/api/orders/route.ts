@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getServerEnv, getServerEnvIssues } from "@/lib/env"
-import { orderSchema, listActiveOrders } from "@/lib/orders"
+import { orderSchema } from "@/lib/orders"
+import { listActiveOrders } from "@/lib/orders-server"
 import { createSupabaseServerClient, createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { getSession } from "@/lib/auth/session"
 import { verifyDisplayToken } from "@/lib/kds-token"
 
 export const dynamic = "force-dynamic"
@@ -48,10 +49,10 @@ export async function GET(request: NextRequest) {
 
     // Require either a valid staff session or a valid KDS display token
     const displayToken = request.headers.get("x-kds-token")
-    const callerRole = await getUserRole()
+    const session = await getSession()
     const hasDisplayAccess = !!displayToken && verifyDisplayToken(slug, displayToken)
 
-    if (!callerRole && !hasDisplayAccess) {
+    if (!session && !hasDisplayAccess) {
       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 })
     }
 
@@ -67,8 +68,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ok: false, message: "Business not found." }, { status: 404 })
       }
 
-      // Staff sessions are scoped to their own business; super-admins can see any
-      if (callerRole && !callerRole.is_super_admin && callerRole.business_id !== business.id) {
+      // Staff sessions are scoped to their own business; platform admins can see any
+      if (session && !session.isPlatformAdmin && !session.memberships.some((m) => m.businessId === business.id)) {
         return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 })
       }
 
@@ -104,8 +105,16 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  const { ORDERFLOW_BUSINESS_ID } = getServerEnv()
+  if (!ORDERFLOW_BUSINESS_ID) {
+    return NextResponse.json(
+      { ok: false, message: "No business specified. Pass ?slug=<business-slug>." },
+      { status: 400 }
+    )
+  }
+
   try {
-    const orders = await listActiveOrders()
+    const orders = await listActiveOrders(ORDERFLOW_BUSINESS_ID)
     return NextResponse.json({ ok: true, orders })
   } catch (error) {
     return NextResponse.json(
@@ -136,6 +145,12 @@ export async function POST(request: Request) {
     const body = createOrderBodySchema.parse(await request.json())
     const supabase = createSupabaseServerClient()
     const { ORDERFLOW_BUSINESS_ID } = getServerEnv()
+    if (!ORDERFLOW_BUSINESS_ID) {
+      return NextResponse.json(
+        { ok: false, message: "Legacy order ingestion requires ORDERFLOW_BUSINESS_ID to be set." },
+        { status: 500 }
+      )
+    }
 
     const { data: latestOrder, error: latestOrderError } = await supabase
       .from("orders")
