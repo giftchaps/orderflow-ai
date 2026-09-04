@@ -1,15 +1,13 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { requireBusinessContext } from "@/lib/auth/guards"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ShoppingBag, TrendingUp, Clock, Radio, ExternalLink } from "lucide-react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
 
 export default async function BusinessDashboardPage() {
-  const role = await getUserRole()
-  if (!role?.business_id) redirect("/login")
+  const ctx = await requireBusinessContext()
+  const businessId = ctx.businessId
 
   const supabase = createSupabaseServerClient()
   const now = new Date()
@@ -22,10 +20,10 @@ export default async function BusinessDashboardPage() {
     { count: ordersWeek },
     { data: recentOrders },
   ] = await Promise.all([
-    supabase.from("businesses").select("name, slug, phone_number, vapi_assistant_id").eq("id", role.business_id).single(),
-    supabase.from("orders").select("*", { count: "exact", head: true }).eq("business_id", role.business_id).gte("placed_at", todayStart),
-    supabase.from("orders").select("*", { count: "exact", head: true }).eq("business_id", role.business_id).gte("placed_at", weekStart),
-    supabase.from("orders").select("id, order_number, status, channel, placed_at, items").eq("business_id", role.business_id).order("placed_at", { ascending: false }).limit(5),
+    supabase.from("businesses").select("name, slug, phone_number, vapi_assistant_id").eq("id", businessId).single(),
+    supabase.from("orders").select("*", { count: "exact", head: true }).eq("business_id", businessId).gte("placed_at", todayStart),
+    supabase.from("orders").select("*", { count: "exact", head: true }).eq("business_id", businessId).gte("placed_at", weekStart),
+    supabase.from("orders").select("id, order_number, status, channel, placed_at, items").eq("business_id", businessId).order("placed_at", { ascending: false }).limit(5),
   ])
 
   const isLive = !!(business?.phone_number || business?.vapi_assistant_id)

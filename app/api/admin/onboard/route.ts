@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     }
     const input = parsed.data
     const ownerEmail = normalizeEmail(input.owner_email)
+    if (!ownerEmail) throw new ApiError(400, "A valid owner email is required.")
     const slug = input.slug || slugify(input.name)
     const supabase = createSupabaseServerClient()
 

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BusinessStatusBadge } from "@/components/portal/status-badge"
 import { api } from "@/lib/api-client"
-import { PLANS } from "@/lib/business"
+import { PLANS } from "@/lib/business-shared"
 import type { AdminBusiness } from "./tabs"
 
 export function AccountPanel({ business }: { business: AdminBusiness }) {

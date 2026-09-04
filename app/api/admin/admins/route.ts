@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) throw new ApiError(400, "A valid email is required.")
 
     const email = normalizeEmail(parsed.data.email)
+    if (!email) throw new ApiError(400, "A valid email is required.")
     const supabase = createSupabaseServerClient()
 
     const { data: exists } = await supabase.from("platform_admins").select("id").eq("email", email).maybeSingle()

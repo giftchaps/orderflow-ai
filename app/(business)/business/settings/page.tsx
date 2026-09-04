@@ -1,24 +1,30 @@
-import { redirect } from "next/navigation"
-import { getUserRole } from "@/lib/auth/get-user-role"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { SettingsForm } from "./settings-form"
+import { notFound } from "next/navigation"
+import { requireBusinessContext } from "@/lib/auth/guards"
+import { buildSetupChecklist, fetchBusiness, fetchStaff } from "@/lib/business"
+import { getAppUrl } from "@/lib/env"
+import { PageHeader } from "@/components/portal/page-header"
+import { SetupChecklist } from "@/components/portal/setup-checklist"
+import { BusinessSettingsForm } from "@/components/business/settings-form"
+
+export const metadata = { title: "Settings" }
 
 export default async function SettingsPage() {
-  const role = await getUserRole()
-  if (!role?.business_id) redirect("/login")
+  const ctx = await requireBusinessContext("settings.view")
+  const business = await fetchBusiness({ id: ctx.businessId })
+  if (!business) notFound()
 
-  const supabase = createSupabaseServerClient()
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id, name, slug, address, prep_time_minutes, phone_number, vapi_assistant_id, display_pin")
-    .eq("id", role.business_id)
-    .single()
+  const staff = await fetchStaff(ctx.businessId)
+  const checklist = buildSetupChecklist(business, staff, "business")
+  const displayUrl = business.slug ? `${getAppUrl()}/display/${business.slug}` : ""
 
-  if (!business) redirect("/login")
-
-  const kitchenUrl = business.slug
-    ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/display/${business.slug}`
-    : ""
-
-  return <SettingsForm business={business} kitchenUrl={kitchenUrl} />
+  return (
+    <>
+      <PageHeader
+        title="Settings"
+        description="Business profile, kitchen display access and your launch checklist."
+      />
+      <SetupChecklist items={checklist} />
+      <BusinessSettingsForm business={business} displayUrl={displayUrl} canEdit={ctx.can("settings.edit")} />
+    </>
+  )
 }

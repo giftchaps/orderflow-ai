@@ -3,10 +3,10 @@ import { SetupChecklist } from "@/components/portal/setup-checklist"
 import { OrderStatusBadge } from "@/components/portal/status-badge"
 import { EmptyState } from "@/components/portal/empty-state"
 import { ClipboardList } from "lucide-react"
-import type { ChecklistItem, StaffRecord } from "@/lib/business"
-import { countMenuItems, type MenuDocument } from "@/lib/business"
+import type { ChecklistItem, StaffRecord } from "@/lib/business-shared"
+import { countMenuItems, type MenuDocument } from "@/lib/business-shared"
 import { CHANNEL_LABEL, summarizeItems, type Order } from "@/lib/orders"
-import { formatRelative } from "@/lib/platform"
+import { formatRelative } from "@/lib/platform-shared"
 import type { AdminBusiness } from "./tabs"
 
 export function OverviewPanel({

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/portal/page-header"
 import { BusinessStatusBadge } from "@/components/portal/status-badge"
 import { buildSetupChecklist, deriveBusinessStatus, fetchBusiness, fetchStaff } from "@/lib/business"
 import { listAuditLogs } from "@/lib/platform"
-import { listActiveOrders } from "@/lib/orders"
+import { listActiveOrders } from "@/lib/orders-server"
 import { getAppUrl } from "@/lib/env"
 import { BusinessDetailTabs } from "@/components/admin/business-detail/tabs"
 

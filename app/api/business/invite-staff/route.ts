@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { normalizeEmail } from "@/lib/auth/normalize-email"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
+import { getSession, canInBusiness } from "@/lib/auth/session"
 
 export async function POST(req: NextRequest) {
-  // Caller must be authenticated and belong to the target business (or be super admin)
-  const callerRole = await getUserRole()
-  if (!callerRole) {
+  // Caller must be authenticated and belong to the target business (or be a platform admin)
+  const session = await getSession()
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
     const { email, role, business_id } = await req.json()
 
-    if (!callerRole.is_super_admin && callerRole.business_id !== business_id) {
+    if (!canInBusiness(session, business_id, "staff.invite")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
     const normalizedEmail = normalizeEmail(email)

@@ -2,8 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { ChecklistItem, StaffRecord } from "@/lib/business"
-import type { AuditRow } from "@/lib/platform"
+import type { ChecklistItem, StaffRecord } from "@/lib/business-shared"
+import type { AuditRow } from "@/lib/platform-shared"
 import type { Order } from "@/lib/orders"
 import type { BusinessStatus } from "@/lib/auth/session"
 import { OverviewPanel } from "./overview-panel"

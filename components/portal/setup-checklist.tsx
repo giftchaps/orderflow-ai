@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { CheckCircle2, Circle, ChevronRight } from "lucide-react"
-import type { ChecklistItem } from "@/lib/business"
+import type { ChecklistItem } from "@/lib/business-shared"
 import { cn } from "@/lib/utils"
 
 export function SetupChecklist({ items, className }: { items: ChecklistItem[]; className?: string }) {

@@ -4,8 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { BusinessStatusBadge } from "@/components/portal/status-badge"
 import { EmptyState } from "@/components/portal/empty-state"
-import type { BusinessListRow } from "@/lib/platform"
-import { formatRelative } from "@/lib/platform"
+import type { BusinessListRow } from "@/lib/platform-shared"
+import { formatRelative } from "@/lib/platform-shared"
 import { cn } from "@/lib/utils"
 
 export function BusinessTable({ rows, compact }: { rows: BusinessListRow[]; compact?: boolean }) {

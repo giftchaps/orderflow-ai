@@ -1,19 +1,17 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/auth/get-user-role"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { requireBusinessContext } from "@/lib/auth/guards"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { redirect } from "next/navigation"
 
 export default async function OrdersPage() {
-  const role = await getUserRole()
-  if (!role?.business_id) redirect("/login")
+  const ctx = await requireBusinessContext()
 
   const supabase = createSupabaseServerClient()
 
   const { data: orders } = await supabase
     .from("orders")
     .select("id, order_number, status, channel, customer_phone, placed_at, items, special_instructions, raw_transcript")
-    .eq("business_id", role.business_id)
+    .eq("business_id", ctx.businessId)
     .order("placed_at", { ascending: false })
     .limit(100)
 

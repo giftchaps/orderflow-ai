@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, ChefHat, MessageSquare, Mic, Phone, X } from "lucide-react"
+import { Check, ChefHat, Globe, MessageSquare, Mic, Phone, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -36,7 +36,7 @@ function TimerDisplay({ placedAt }: { placedAt: string }) {
 }
 
 function ChannelBadge({ channel }: { channel: Order["channel"] }) {
-  const config = {
+  const configMap = {
     phone: {
       icon: Phone,
       label: "Phone",
@@ -57,7 +57,14 @@ function ChannelBadge({ channel }: { channel: Order["channel"] }) {
       label: "SMS",
       className: "border-violet-500/30 bg-violet-500/20 text-violet-400",
     },
-  }[channel]
+    web: {
+      icon: Globe,
+      label: "Web",
+      className: "border-amber-500/30 bg-amber-500/20 text-amber-400",
+    },
+  } satisfies Record<Order["channel"], { icon: typeof Phone; label: string; className: string }>
+
+  const config = configMap[channel]
 
   const Icon = config.icon
 

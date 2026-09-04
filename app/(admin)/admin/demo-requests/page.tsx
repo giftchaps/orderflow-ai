@@ -1,14 +1,8 @@
-import { redirect } from "next/navigation"
-import { getUserRole } from "@/lib/auth/get-user-role"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare } from "lucide-react"
 
 export default async function DemoRequestsPage() {
-  const role = await getUserRole()
-  if (!role?.is_super_admin) redirect("/login")
-
   const supabase = createSupabaseServerClient()
   const { data: requests } = await supabase
     .from("demo_requests")

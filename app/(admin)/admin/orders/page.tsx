@@ -1,14 +1,9 @@
-import { redirect } from "next/navigation"
-import { getUserRole } from "@/lib/auth/get-user-role"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
 export default async function AdminOrdersPage() {
-  const role = await getUserRole()
-  if (!role?.is_super_admin) redirect("/login")
-
   const supabase = createSupabaseServerClient()
 
   const { data: orders } = await supabase

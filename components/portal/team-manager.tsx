@@ -35,7 +35,7 @@ import { MembershipStatusBadge } from "@/components/portal/status-badge"
 import { EmptyState } from "@/components/portal/empty-state"
 import { api } from "@/lib/api-client"
 import { ROLE_DESCRIPTION, ROLE_LABEL, type BusinessRole } from "@/lib/auth/permissions"
-import type { StaffRecord } from "@/lib/business"
+import type { StaffRecord } from "@/lib/business-shared"
 import type { MembershipStatus } from "@/lib/auth/session"
 
 type Props = {

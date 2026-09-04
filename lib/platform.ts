@@ -3,21 +3,11 @@ import "server-only"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { deriveBusinessStatus } from "@/lib/business"
 import type { BusinessStatus } from "@/lib/auth/session"
+import { type BusinessListRow, type AuditRow, type PlatformAdminRow, formatMoney, formatRelative } from "@/lib/platform-shared"
 
-export type BusinessListRow = {
-  id: string
-  name: string
-  slug: string | null
-  status: BusinessStatus
-  plan: string | null
-  owner_email: string | null
-  phone_number: string | null
-  vapi_assistant_id: string | null
-  created_at: string
-  orders_today: number
-  active_orders: number
-  owner_activated: boolean
-}
+// Re-exported for server-only callers that already import these from here.
+export type { BusinessListRow, AuditRow, PlatformAdminRow }
+export { formatMoney, formatRelative }
 
 function startOfToday() {
   const now = new Date()
@@ -139,18 +129,6 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   }
 }
 
-export type AuditRow = {
-  id: string
-  action: string
-  actor_type: string
-  actor_email: string | null
-  business_id: string | null
-  target_type: string | null
-  target_id: string | null
-  metadata: Record<string, unknown> | null
-  created_at: string
-}
-
 export async function listAuditLogs(opts: { businessId?: string; limit?: number } = {}): Promise<AuditRow[]> {
   const supabase = createSupabaseServerClient()
   let q = supabase
@@ -168,14 +146,6 @@ export async function listAuditLogs(opts: { businessId?: string; limit?: number 
   return (data ?? []) as AuditRow[]
 }
 
-export type PlatformAdminRow = {
-  id: string
-  email: string
-  user_id: string | null
-  name: string | null
-  created_at: string
-}
-
 export async function listPlatformAdmins(): Promise<PlatformAdminRow[]> {
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase
@@ -187,20 +157,4 @@ export async function listPlatformAdmins(): Promise<PlatformAdminRow[]> {
     throw new Error(error.message)
   }
   return (data ?? []) as PlatformAdminRow[]
-}
-
-export function formatMoney(value: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value)
-}
-
-export function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.round(diff / 60000)
-  if (mins < 1) return "just now"
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.round(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.round(hours / 24)
-  if (days < 30) return `${days}d ago`
-  return new Date(iso).toLocaleDateString()
 }

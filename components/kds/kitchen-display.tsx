@@ -91,6 +91,7 @@ function getChannelLabel(channel: Order["channel"]): string {
     whatsapp_text: "WHATSAPP",
     whatsapp_voice: "VOICE NOTE",
     sms: "SMS",
+    web: "WEB",
   } satisfies Record<Order["channel"], string>
 
   return labels[channel]

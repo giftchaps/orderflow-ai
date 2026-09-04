@@ -1,7 +1,7 @@
 import { History } from "lucide-react"
 import { EmptyState } from "@/components/portal/empty-state"
-import type { AuditRow } from "@/lib/platform"
-import { formatRelative } from "@/lib/platform"
+import type { AuditRow } from "@/lib/platform-shared"
+import { formatRelative } from "@/lib/platform-shared"
 
 const ACTION_LABEL: Record<string, string> = {
   "business.created": "created a business",

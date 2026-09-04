@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       if (!data) throw new ApiError(404, "No pending invite for that email.")
       staff_id = data.id
     }
+    if (!staff_id) throw new ApiError(400, "staff_id or email is required.")
 
     const membership = session.memberships.find((m) => m.businessId === business_id)
     const result = await resendTeamInvite(
