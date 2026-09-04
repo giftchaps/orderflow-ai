@@ -62,13 +62,14 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
     setUploading(true)
     try {
       const formData = new FormData()
-      // Multiple photos (e.g. a menu with a front and back, or several pages) are sent
-      // together so the model can merge them into one menu instead of overwriting itself
-      // once per photo.
-      for (const file of files) formData.append("images", file)
+      // Multiple files (photos, PDFs, Word docs — e.g. a menu with a front and back,
+      // several pages, or a price list plus a couple of photos of specials) are sent
+      // together so the model can merge them into one menu instead of overwriting
+      // itself once per file.
+      for (const file of files) formData.append("files", file)
       const res = await fetch("/api/menu/extract", { method: "POST", body: formData })
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; categories?: MenuCategory[] }
-      if (!res.ok || data.ok === false) throw new Error(data.error ?? "Could not read a menu from that image.")
+      if (!res.ok || data.ok === false) throw new Error(data.error ?? "Could not read a menu from what you uploaded.")
       setCategories(
         (data.categories ?? []).map((c) => ({
           ...c,
@@ -78,9 +79,9 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
         }))
       )
       mark()
-      toast.success(files.length > 1 ? `Menu extracted from ${files.length} photos — review it, then save` : "Menu extracted — review it, then save")
+      toast.success(files.length > 1 ? `Menu extracted from ${files.length} files — review it, then save` : "Menu extracted — review it, then save")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not read that image")
+      toast.error(err instanceof Error ? err.message : "Could not read what you uploaded")
     } finally {
       setUploading(false)
       e.target.value = ""
@@ -129,6 +130,9 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
         <div>
           {savedAt && <p className="text-xs text-muted-foreground">Last saved at {savedAt}</p>}
           {!canEdit && <p className="text-xs text-muted-foreground">You have view-only access to the menu.</p>}
+          {canEdit && !savedAt && (
+            <p className="text-xs text-muted-foreground">Photos, PDFs, or Word (.docx) — upload several at once to combine them.</p>
+          )}
         </div>
         {canEdit && (
           <div className="flex items-center gap-3">
@@ -136,14 +140,14 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
               <Button variant="outline" asChild disabled={uploading}>
                 <span>
                   {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-                  Upload menu photos
+                  Upload menu files
                 </span>
               </Button>
             </Label>
             <input
               id="menu-upload"
               type="file"
-              accept="image/*"
+              accept="image/*,.pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.txt,.csv,text/plain,text/csv"
               multiple
               className="hidden"
               onChange={handleMenuUpload}
