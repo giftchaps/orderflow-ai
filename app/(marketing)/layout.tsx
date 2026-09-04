@@ -5,6 +5,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div
+      id="marketing-theme-root"
       className="marketing"
       style={{
         // Warm cream light theme — scoped to marketing pages only

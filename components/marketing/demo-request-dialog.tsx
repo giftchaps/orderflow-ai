@@ -22,6 +22,15 @@ export function DemoRequestDialog({
   const [form, setForm] = useState({ name: "", email: initialEmail, business_name: "", phone: "", message: "" })
   const [status, setStatus] = useState<Status>("idle")
   const [error, setError] = useState<string | null>(null)
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
+
+  // Radix portals dialog content to document.body by default, which sits outside
+  // the marketing layout's themed wrapper (its warm-cream palette is applied via
+  // CSS variables on that wrapper, not globally) — render inside it instead so the
+  // dialog doesn't fall back to the site-wide dark theme.
+  useEffect(() => {
+    setPortalContainer(document.getElementById("marketing-theme-root"))
+  }, [])
 
   // Pick up a freshly typed hero/CTA email each time the dialog opens.
   useEffect(() => {
@@ -61,7 +70,7 @@ export function DemoRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent container={portalContainer} className="max-w-md">
         {status === "success" ? (
           <div className="flex flex-col items-center gap-4 py-6 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-accent/10">
