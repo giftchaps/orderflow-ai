@@ -57,12 +57,15 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
   }
 
   const handleMenuUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
     setUploading(true)
     try {
       const formData = new FormData()
-      formData.append("image", file)
+      // Multiple photos (e.g. a menu with a front and back, or several pages) are sent
+      // together so the model can merge them into one menu instead of overwriting itself
+      // once per photo.
+      for (const file of files) formData.append("images", file)
       const res = await fetch("/api/menu/extract", { method: "POST", body: formData })
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; categories?: MenuCategory[] }
       if (!res.ok || data.ok === false) throw new Error(data.error ?? "Could not read a menu from that image.")
@@ -75,7 +78,7 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
         }))
       )
       mark()
-      toast.success("Menu extracted — review it, then save")
+      toast.success(files.length > 1 ? `Menu extracted from ${files.length} photos — review it, then save` : "Menu extracted — review it, then save")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not read that image")
     } finally {
@@ -133,11 +136,18 @@ export function MenuManager({ initialMenu, canEdit }: { initialMenu: MenuDocumen
               <Button variant="outline" asChild disabled={uploading}>
                 <span>
                   {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-                  Upload menu photo
+                  Upload menu photos
                 </span>
               </Button>
             </Label>
-            <input id="menu-upload" type="file" accept="image/*" className="hidden" onChange={handleMenuUpload} />
+            <input
+              id="menu-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleMenuUpload}
+            />
             <Button onClick={handleSave} disabled={saving || !isDirty}>
               {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Save className="mr-2 size-4" />}
               {isDirty ? "Save changes" : "Saved"}
