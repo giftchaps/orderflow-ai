@@ -5,6 +5,7 @@ import { apiError, apiRequireSession, ApiError } from "@/lib/auth/guards"
 import { can } from "@/lib/auth/permissions"
 
 const MAX_BYTES = 10 * 1024 * 1024
+const MAX_IMAGES = 8
 
 const menuSchema = z.object({
   categories: z.array(
@@ -37,13 +38,34 @@ export async function POST(req: NextRequest) {
     if (!process.env.OPENAI_API_KEY) throw new ApiError(503, "Menu extraction is not configured (OPENAI_API_KEY).")
 
     const formData = await req.formData()
-    const image = formData.get("image")
-    if (!(image instanceof File)) throw new ApiError(400, "No image provided.")
-    if (image.size > MAX_BYTES) throw new ApiError(413, "Image must be under 10MB.")
-    if (!image.type.startsWith("image/")) throw new ApiError(415, "File must be an image.")
+    // Accept either multiple "images" entries (a menu that spans several photos —
+    // front/back, or multiple pages) or the legacy single "image" field, so old
+    // clients and the multi-file picker both work against this route.
+    const images = [...formData.getAll("images"), ...formData.getAll("image")].filter(
+      (v): v is File => v instanceof File
+    )
+    if (images.length === 0) throw new ApiError(400, "No image provided.")
+    if (images.length > MAX_IMAGES) throw new ApiError(400, `Upload at most ${MAX_IMAGES} photos at a time.`)
+    for (const image of images) {
+      if (image.size > MAX_BYTES) throw new ApiError(413, "Each image must be under 10MB.")
+      if (!image.type.startsWith("image/")) throw new ApiError(415, "All files must be images.")
+    }
 
-    const base64 = Buffer.from(await image.arrayBuffer()).toString("base64")
+    const imageBlocks = await Promise.all(
+      images.map(async (image) => {
+        const base64 = Buffer.from(await image.arrayBuffer()).toString("base64")
+        return {
+          type: "image_url" as const,
+          image_url: { url: `data:${image.type};base64,${base64}`, detail: "high" as const },
+        }
+      })
+    )
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+    const multiPageNote =
+      images.length > 1
+        ? ` These ${images.length} images are pages or sections of the same menu (in the order provided) — merge them into ONE unified list of categories. Don't create duplicate categories or items for the same thing shown across two photos (e.g. a category heading that continues onto the next page); combine them under a single category instead.`
+        : ""
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -55,10 +77,10 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: "text",
-              text: `Extract the menu from this image as JSON: {"categories":[{"name":string,"items":[{"name":string,"description"?:string,"aliases":string[],"active":true,"prices":{[size:string]:number}}]}]}.
-Rules: extract every visible item with exact names; fill prices when visible otherwise 0; for sandwiches/subs use price keys hard_roll_6inch, wrap, 12inch; for everything else use "regular". Return only JSON.`,
+              text: `Extract the menu from ${images.length > 1 ? "these images" : "this image"} as JSON: {"categories":[{"name":string,"items":[{"name":string,"description"?:string,"aliases":string[],"active":true,"prices":{[size:string]:number}}]}]}.
+Rules: extract every visible item with exact names; fill prices when visible otherwise 0; for sandwiches/subs use price keys hard_roll_6inch, wrap, 12inch; for everything else use "regular". Return only JSON.${multiPageNote}`,
             },
-            { type: "image_url", image_url: { url: `data:${image.type};base64,${base64}`, detail: "high" } },
+            ...imageBlocks,
           ],
         },
       ],
