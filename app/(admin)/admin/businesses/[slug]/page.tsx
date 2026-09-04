@@ -38,6 +38,14 @@ export default async function AdminBusinessDetailPage({ params, searchParams }: 
   const checklist = buildSetupChecklist(business, staff, "admin")
   const displayUrl = `${getAppUrl()}/display/${business.slug}`
 
+  // business.owner_email is a denormalized field set at onboarding time; it's
+  // frequently empty for businesses created before that flow existed (or
+  // edited outside it), even though a real owner exists in businesses_staff.
+  // Fall back to the live staff record so the header never contradicts the
+  // Overview panel below it, which already derives the owner this way.
+  const ownerOfRecord = staff.find((s) => s.role === "owner")
+  const ownerLabel = business.owner_email ?? ownerOfRecord?.email ?? ownerOfRecord?.name ?? "No owner"
+
   const { display_pin, display_pin_hash, ...safeBusiness } = business
 
   return (
@@ -56,7 +64,7 @@ export default async function AdminBusinessDetailPage({ params, searchParams }: 
             <span aria-hidden>·</span>
             <span className="capitalize">{business.plan ?? "starter"} plan</span>
             <span aria-hidden>·</span>
-            <span>{business.owner_email ?? "No owner"}</span>
+            <span>{ownerLabel}</span>
           </span>
         }
         actions={
