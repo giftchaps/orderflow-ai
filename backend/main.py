@@ -441,6 +441,31 @@ async def vapi_webhook(request: Request):
     # Extract structured order items via GPT-4o, using this business's own menu
     items = await asyncio.to_thread(extract_order_items, transcript, business_name, business_menu)
 
+    if not items:
+        # A transcript exists (this isn't the missed-call case above) but no
+        # extractable order came out of it — background noise, a wrong
+        # number, a caller who just asked a question, or (for a multilingual
+        # business) the transcriber not actually understanding what was
+        # said. Previously this still inserted a blank order, which just
+        # left an empty ticket sitting in the kitchen queue for staff to
+        # notice and cancel by hand. The full transcript is already saved to
+        # webhook_events above (visible on the business's Calls page), so
+        # log a warning for debugging and skip creating the order.
+        logger.warning(
+            "No order items extracted for call_id=%s business_id=%s — not creating a blank order. "
+            "Transcript: %s",
+            vapi_call_id, business_id, transcript[:500],
+        )
+        if customer_phone and customer_phone != "unknown":
+            callback = f" at {business_phone}" if business_phone else ""
+            await asyncio.to_thread(
+                send_sms,
+                customer_phone,
+                f"Thanks for calling {business_name}! We didn't catch an order from that call — give us a call back{callback} if you'd like to place one.",
+                business_sms_from,
+            )
+        return {"status": "ok", "detail": "no items extracted"}
+
     # Insert order — ON CONFLICT on (business_id, vapi_call_id) means retried
     # webhooks for the same call are silently ignored rather than creating duplicates.
     order_data = {
