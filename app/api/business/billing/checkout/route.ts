@@ -3,14 +3,15 @@ import { z } from "zod"
 import { apiError, apiRequireSession, ApiError } from "@/lib/auth/guards"
 import { canInBusiness } from "@/lib/auth/session"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getStripe, priceIdForPlan } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
+import { priceIdForPlan } from "@/lib/plans"
 import { getAppUrl } from "@/lib/env"
-import { PLANS, type PlanId } from "@/lib/business-shared"
+import { PLAN_IDS, type PlanId } from "@/lib/business-shared"
 
 export const dynamic = "force-dynamic"
 
 const bodySchema = z.object({
-  plan: z.enum(PLANS.map((p) => p.id) as [string, ...string[]]),
+  plan: z.enum(PLAN_IDS),
 })
 
 /**
@@ -42,6 +43,11 @@ export async function POST(req: NextRequest) {
     if (error) throw new ApiError(500, error.message)
     if (!business) throw new ApiError(404, "Business not found.")
 
+    // Resolve the price before creating a Stripe customer, so a plan that
+    // isn't set up yet in Admin -> Plans fails fast without leaving behind
+    // an unused Stripe customer.
+    const priceId = await priceIdForPlan(plan)
+
     const stripe = getStripe()
     let customerId = business.stripe_customer_id as string | null
 
@@ -63,7 +69,7 @@ export async function POST(req: NextRequest) {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceIdForPlan(plan), quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appUrl}/business/settings?billing=success`,
       cancel_url: `${appUrl}/business/settings?billing=cancelled`,
       client_reference_id: businessId,

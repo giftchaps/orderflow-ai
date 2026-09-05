@@ -7,7 +7,7 @@ import { hashPin, PIN_RE } from "@/lib/kds-token"
 import { logAudit } from "@/lib/audit"
 import { ApiError } from "@/lib/auth/guards"
 import type { Session } from "@/lib/auth/session"
-import { PLANS, TIMEZONES } from "@/lib/business"
+import { PLAN_IDS, TIMEZONES } from "@/lib/business"
 
 // ---------------------------------------------------------------------------
 // Schemas — split by who may change what.
@@ -36,7 +36,7 @@ export const displayPinSchema = z.object({
 
 /** Platform-admin-only fields: plan, telephony, agent, owner. */
 export const businessPlatformSchema = z.object({
-  plan: z.enum(PLANS.map((p) => p.id) as [string, ...string[]]).optional(),
+  plan: z.enum(PLAN_IDS).optional(),
   phone_number: z.string().trim().max(32).nullable().optional(),
   sms_from_number: z.string().trim().max(32).nullable().optional(),
   vapi_assistant_id: z.string().trim().max(120).nullable().optional(),

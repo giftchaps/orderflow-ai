@@ -24,6 +24,7 @@ export type AuditAction =
   | "business.subscription_started"
   | "business.subscription_updated"
   | "business.subscription_canceled"
+  | "plan_tier.updated"
 
 type AuditInput = {
   action: AuditAction

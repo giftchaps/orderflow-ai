@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 import { getServerEnvIssues, getIntegrationStatus } from "@/lib/env"
+import { fetchPlanTiers } from "@/lib/plans"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/portal/page-header"
 import { Card } from "@/components/ui/card"
@@ -37,7 +38,8 @@ async function checkDatabase(): Promise<Check> {
 export default async function SystemHealthPage() {
   const envIssues = getServerEnvIssues()
   const integrations = getIntegrationStatus()
-  const dbCheck = await checkDatabase()
+  const [dbCheck, planTiers] = await Promise.all([checkDatabase(), fetchPlanTiers().catch(() => [])])
+  const plansMissingPrice = planTiers.filter((t) => !t.stripePriceId).map((t) => t.label)
 
   const checks: Check[] = [
     dbCheck,
@@ -59,13 +61,18 @@ export default async function SystemHealthPage() {
     {
       label: "Billing (Stripe)",
       description: "Lets businesses subscribe and pay via Stripe Checkout.",
-      state: integrations.stripe && integrations.stripeWebhook && integrations.stripePrices ? "ok" : integrations.stripe ? "warn" : "off",
+      state:
+        integrations.stripe && integrations.stripeWebhook && plansMissingPrice.length === 0
+          ? "ok"
+          : integrations.stripe
+            ? "warn"
+            : "off",
       detail: !integrations.stripe
         ? "STRIPE_SECRET_KEY is not set."
         : !integrations.stripeWebhook
           ? "STRIPE_WEBHOOK_SECRET is not set — subscription status won't sync after checkout."
-          : !integrations.stripePrices
-            ? "One or more STRIPE_PRICE_* env vars are missing — checkout will fail for that plan."
+          : plansMissingPrice.length > 0
+            ? `No Stripe price set for: ${plansMissingPrice.join(", ")}. Add one in Admin → Plans — checkout will fail for that plan until you do.`
             : undefined,
     },
     {

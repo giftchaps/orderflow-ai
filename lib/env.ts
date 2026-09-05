@@ -27,9 +27,6 @@ const serverEnvSchema = z.object({
   ORDERFLOW_BUSINESS_ID: z.string().uuid().optional(),
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
-  STRIPE_PRICE_STARTER: z.string().min(1).optional(),
-  STRIPE_PRICE_GROWTH: z.string().min(1).optional(),
-  STRIPE_PRICE_PRO: z.string().min(1).optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
@@ -48,9 +45,6 @@ function readRaw() {
     BACKEND_URL: process.env.BACKEND_URL || undefined,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || undefined,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || undefined,
-    STRIPE_PRICE_STARTER: process.env.STRIPE_PRICE_STARTER || undefined,
-    STRIPE_PRICE_GROWTH: process.env.STRIPE_PRICE_GROWTH || undefined,
-    STRIPE_PRICE_PRO: process.env.STRIPE_PRICE_PRO || undefined,
     ORDERFLOW_BUSINESS_ID: legacyBusinessId
       ? legacyBusinessId.toLowerCase().startsWith("id:")
         ? legacyBusinessId.slice(3).trim()
@@ -88,7 +82,9 @@ export function getIntegrationStatus() {
     legacyBusinessId: Boolean(raw.ORDERFLOW_BUSINESS_ID),
     stripe: Boolean(raw.STRIPE_SECRET_KEY),
     stripeWebhook: Boolean(raw.STRIPE_WEBHOOK_SECRET),
-    stripePrices: Boolean(raw.STRIPE_PRICE_STARTER && raw.STRIPE_PRICE_GROWTH && raw.STRIPE_PRICE_PRO),
+    // Whether every plan has a Stripe Price id attached is now a database
+    // question (Admin -> Plans), not an env var -- see the System Health
+    // page, which checks plan_tiers directly instead of reading this flag.
   }
 }
 

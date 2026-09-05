@@ -65,13 +65,41 @@ export type StaffRecord = {
   created_at: string
 }
 
-export const PLANS = [
-  { id: "starter", label: "Starter", price: "$49/mo", description: "Up to 100 orders per month" },
-  { id: "growth", label: "Growth", price: "$99/mo", description: "Up to 500 orders per month" },
-  { id: "pro", label: "Pro", price: "$149/mo", description: "Unlimited orders, priority support" },
-] as const
+/**
+ * The fixed set of plan ids the `businesses.plan` column allows (see the
+ * businesses_plan_check constraint). What each plan actually costs and
+ * includes is NOT hardcoded here anymore -- it lives in the `plan_tiers`
+ * table (lib/plans.ts) so it can be edited from Admin -> Plans without a
+ * code deploy. This file stays client-safe, so it only keeps the id list
+ * and a couple of pure formatting helpers that don't need the database.
+ */
+export const PLAN_IDS = ["starter", "growth", "pro"] as const
+export type PlanId = (typeof PLAN_IDS)[number]
 
-export type PlanId = (typeof PLANS)[number]["id"]
+/** A `plan_tiers` row, shaped for use in both server and client components. */
+export type PlanTier = {
+  id: PlanId
+  label: string
+  priceCents: number
+  monthlyOrderLimit: number | null
+  staffSeatLimit: number | null
+  prioritySupport: boolean
+  stripePriceId: string | null
+  sortOrder: number
+}
+
+export function formatPriceCents(cents: number) {
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 === 0 ? 0 : 2 })}/mo`
+}
+
+/** Short bullet describing what a plan includes, derived from its actual configured limits. */
+export function planFeatureSummary(tier: Pick<PlanTier, "monthlyOrderLimit" | "staffSeatLimit" | "prioritySupport">) {
+  const parts: string[] = []
+  parts.push(tier.monthlyOrderLimit ? `Up to ${tier.monthlyOrderLimit.toLocaleString()} orders/mo` : "Unlimited orders")
+  parts.push(tier.staffSeatLimit ? `Up to ${tier.staffSeatLimit} team members` : "Unlimited team members")
+  if (tier.prioritySupport) parts.push("Priority support")
+  return parts.join(" · ")
+}
 
 export const TIMEZONES = [
   { value: "America/New_York", label: "Eastern (New York)" },

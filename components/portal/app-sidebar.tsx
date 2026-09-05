@@ -15,6 +15,7 @@ import {
   BarChart3,
   Settings,
   MonitorPlay,
+  CreditCard,
   LogOut,
   ChevronsUpDown,
   Check,
@@ -63,6 +64,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Businesses", href: "/admin/businesses", icon: Building2 },
   { label: "Orders", href: "/admin/orders", icon: ClipboardList },
   { label: "Demo requests", href: "/admin/demo-requests", icon: Inbox },
+  { label: "Plans", href: "/admin/plans", icon: CreditCard },
   { label: "Platform admins", href: "/admin/admins", icon: ShieldCheck },
   { label: "System health", href: "/admin/system", icon: Activity },
 ]

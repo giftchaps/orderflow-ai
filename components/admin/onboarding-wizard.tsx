@@ -11,13 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api, ApiClientError } from "@/lib/api-client"
-
-// lib/business.ts is server-only; keep a client-safe copy of the bits this form needs.
-const PLANS = [
-  { id: "starter", label: "Starter", price: "$49/mo", description: "Up to 100 orders per month" },
-  { id: "growth", label: "Growth", price: "$99/mo", description: "Up to 500 orders per month" },
-  { id: "pro", label: "Pro", price: "$149/mo", description: "Unlimited orders, priority support" },
-] as const
+import { formatPriceCents, planFeatureSummary, type PlanId, type PlanTier } from "@/lib/business-shared"
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern (New York)" },
@@ -41,7 +35,7 @@ function slugify(value: string) {
 type MenuItem = { name: string; description?: string; aliases?: string[]; active?: boolean; prices?: Record<string, number> }
 type MenuCategory = { name: string; items: MenuItem[] }
 
-export function OnboardingWizard() {
+export function OnboardingWizard({ planTiers }: { planTiers: PlanTier[] }) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [slugTouched, setSlugTouched] = useState(false)
@@ -54,7 +48,7 @@ export function OnboardingWizard() {
     address: "",
     timezone: "America/New_York",
     prep_time_minutes: 15,
-    plan: "starter" as (typeof PLANS)[number]["id"],
+    plan: "starter" as PlanId,
     owner_name: "",
     owner_email: "",
     defer_invite: false,
@@ -185,14 +179,19 @@ export function OnboardingWizard() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PLANS.map((p) => (
+                  {planTiers.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.label} · {p.price}
+                      {p.label} · {formatPriceCents(p.priceCents)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">{PLANS.find((p) => p.id === form.plan)?.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {(() => {
+                  const tier = planTiers.find((p) => p.id === form.plan)
+                  return tier ? planFeatureSummary(tier) : null
+                })()}
+              </p>
             </Field>
           </Card>
 

@@ -7,6 +7,9 @@ import { assignableRoles, BUSINESS_ROLES, type BusinessRole } from "@/lib/auth/p
 import type { Session } from "@/lib/auth/session"
 import { inviteStaff, resendInvite } from "@/lib/invitations"
 import { logAudit } from "@/lib/audit"
+import { fetchBusiness } from "@/lib/business"
+import { countActiveStaff, fetchPlanTier } from "@/lib/plans"
+import type { PlanId } from "@/lib/business-shared"
 
 export const inviteStaffSchema = z.object({
   email: z.string().trim().email(),
@@ -29,6 +32,25 @@ export async function inviteTeamMember(actor: Actor, businessId: string, input: 
   }
   if (input.role === "owner" && actor.role !== "platform_admin") {
     throw new ApiError(403, "Only platform administrators can assign the owner role.")
+  }
+
+  // Seat limits are enforced here, not on live/automated paths, because
+  // inviting a team member is a deliberate action that never risks
+  // interrupting a business already mid-service (unlike order limits, which
+  // are only ever a soft nudge — see lib/plans.ts). Platform admins can
+  // always add seats, e.g. to fix a business's own mistake.
+  if (actor.role !== "platform_admin") {
+    const business = await fetchBusiness({ id: businessId })
+    const tier = business?.plan ? await fetchPlanTier(business.plan as PlanId) : null
+    if (tier?.staffSeatLimit) {
+      const activeCount = await countActiveStaff(businessId)
+      if (activeCount >= tier.staffSeatLimit) {
+        throw new ApiError(
+          409,
+          `Your ${tier.label} plan is limited to ${tier.staffSeatLimit} team member${tier.staffSeatLimit === 1 ? "" : "s"}. Upgrade in Settings to invite more.`
+        )
+      }
+    }
   }
 
   const result = await inviteStaff({

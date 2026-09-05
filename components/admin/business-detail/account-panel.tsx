@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2, Pause, Play, Send } from "lucide-react"
@@ -22,10 +23,18 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BusinessStatusBadge } from "@/components/portal/status-badge"
 import { api } from "@/lib/api-client"
-import { PLANS } from "@/lib/business-shared"
+import { formatPriceCents, planFeatureSummary, type PlanTier } from "@/lib/business-shared"
 import type { AdminBusiness } from "./tabs"
 
-export function AccountPanel({ business }: { business: AdminBusiness }) {
+export function AccountPanel({
+  business,
+  planTiers,
+  ordersThisMonth,
+}: {
+  business: AdminBusiness
+  planTiers: PlanTier[]
+  ordersThisMonth: number
+}) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -89,14 +98,27 @@ export function AccountPanel({ business }: { business: AdminBusiness }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PLANS.map((p) => (
+                  {planTiers.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.label} · {p.price}
+                      {p.label} · {formatPriceCents(p.priceCents)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">{PLANS.find((p) => p.id === form.plan)?.description}</p>
+              {(() => {
+                const tier = planTiers.find((p) => p.id === form.plan)
+                if (!tier) return null
+                return (
+                  <p className="text-xs text-muted-foreground">
+                    {planFeatureSummary(tier)}
+                    {tier.monthlyOrderLimit && ` · ${ordersThisMonth}/${tier.monthlyOrderLimit} orders used this month`}
+                    {" · "}
+                    <Link href="/admin/plans" className="underline">
+                      Edit price/limits
+                    </Link>
+                  </p>
+                )
+              })()}
               {business.subscription_status ? (
                 <p className="text-xs text-muted-foreground">
                   Stripe: <span className="font-medium capitalize">{business.subscription_status.replace(/_/g, " ")}</span>

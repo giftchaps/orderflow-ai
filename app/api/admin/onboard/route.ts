@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { normalizeEmail } from "@/lib/auth/normalize-email"
 import { inviteStaff } from "@/lib/invitations"
 import { logAudit } from "@/lib/audit"
-import { PLANS, SLUG_RE, slugify } from "@/lib/business"
+import { PLAN_IDS, SLUG_RE, slugify } from "@/lib/business"
 
 const menuItemSchema = z.object({
   id: z.string().optional(),
@@ -26,7 +26,7 @@ export const onboardSchema = z.object({
   address: z.string().trim().max(240).optional().or(z.literal("")),
   timezone: z.string().trim().min(1).default("America/New_York"),
   prep_time_minutes: z.coerce.number().int().min(1).max(240).default(15),
-  plan: z.enum(PLANS.map((p) => p.id) as [string, ...string[]]).default("starter"),
+  plan: z.enum(PLAN_IDS).default("starter"),
   owner_name: z.string().trim().max(120).optional().or(z.literal("")),
   owner_email: z.string().trim().email(),
   menu: menuSchema.nullable().optional(),
