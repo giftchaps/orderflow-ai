@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { requireBusinessContext } from "@/lib/auth/guards"
 import { buildSetupChecklist, fetchBusiness, fetchStaff } from "@/lib/business"
+import { fetchPlanTiers, countOrdersThisMonth } from "@/lib/plans"
 import { getAppUrl } from "@/lib/env"
 import { PageHeader } from "@/components/portal/page-header"
 import { SetupChecklist } from "@/components/portal/setup-checklist"
@@ -14,7 +15,11 @@ export default async function SettingsPage() {
   const business = await fetchBusiness({ id: ctx.businessId })
   if (!business) notFound()
 
-  const staff = await fetchStaff(ctx.businessId)
+  const [staff, planTiers, ordersThisMonth] = await Promise.all([
+    fetchStaff(ctx.businessId),
+    fetchPlanTiers(),
+    countOrdersThisMonth(ctx.businessId),
+  ])
   const checklist = buildSetupChecklist(business, staff, "business")
   const displayUrl = business.slug ? `${getAppUrl()}/display/${business.slug}` : ""
 
@@ -27,8 +32,10 @@ export default async function SettingsPage() {
       <SetupChecklist items={checklist} />
       <BillingPanel
         plan={business.plan}
+        planTiers={planTiers}
         subscriptionStatus={business.subscription_status}
         currentPeriodEnd={business.current_period_end}
+        ordersThisMonth={ordersThisMonth}
         canManage={ctx.can("billing.manage")}
       />
       <BusinessSettingsForm business={business} displayUrl={displayUrl} canEdit={ctx.can("settings.edit")} />

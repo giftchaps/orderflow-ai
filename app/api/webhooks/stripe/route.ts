@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
-import { getStripe, planForPriceId } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
+import { planForPriceId } from "@/lib/plans"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { logAudit } from "@/lib/audit"
 
@@ -128,7 +129,7 @@ async function syncSubscription(businessId: string, subscription: Stripe.Subscri
   const supabase = createSupabaseServerClient()
   const item = subscription.items.data[0]
   const priceId = item?.price?.id
-  const plan = priceId ? planForPriceId(priceId) : null
+  const plan = priceId ? await planForPriceId(priceId) : null
   const currentPeriodEnd = item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : null
   const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id
 

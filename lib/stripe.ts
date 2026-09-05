@@ -1,8 +1,6 @@
 import "server-only"
 
 import Stripe from "stripe"
-import type { PlanId } from "@/lib/business-shared"
-import { PLANS } from "@/lib/business-shared"
 
 let cached: Stripe | null = null
 
@@ -15,30 +13,11 @@ export function getStripe(): Stripe {
   return cached
 }
 
-/** Maps our internal plan ids to the Stripe Price id each one charges. */
-function planPriceEnv(): Record<PlanId, string | undefined> {
-  return {
-    starter: process.env.STRIPE_PRICE_STARTER || undefined,
-    growth: process.env.STRIPE_PRICE_GROWTH || undefined,
-    pro: process.env.STRIPE_PRICE_PRO || undefined,
-  }
-}
-
-export function priceIdForPlan(plan: PlanId): string {
-  const id = planPriceEnv()[plan]
-  if (!id) throw new Error(`No Stripe price is configured for the "${plan}" plan (set STRIPE_PRICE_${plan.toUpperCase()}).`)
-  return id
-}
-
-/** Reverse lookup used by the webhook to figure out which plan a subscription's price maps to. */
-export function planForPriceId(priceId: string): PlanId | null {
-  const env = planPriceEnv()
-  for (const plan of PLANS.map((p) => p.id)) {
-    if (env[plan] === priceId) return plan
-  }
-  return null
-}
-
 export function billingConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY)
 }
+
+// Which Stripe Price id each plan charges, and the reverse lookup, are no
+// longer env vars -- they live on the plan_tiers table so an admin can
+// change them from Admin -> Plans without a redeploy. See lib/plans.ts
+// (priceIdForPlan / planForPriceId).

@@ -8,8 +8,9 @@ import {
   type MenuDocument,
   type MenuItem,
   type PlanId,
+  type PlanTier,
   type StaffRecord,
-  PLANS,
+  PLAN_IDS,
   SLUG_RE,
   TIMEZONES,
   buildSetupChecklist,
@@ -19,8 +20,9 @@ import {
 } from "@/lib/business-shared"
 
 // Re-exported for server-only callers that already import these from here.
-export type { BusinessRecord, ChecklistItem, MenuCategory, MenuDocument, MenuItem, PlanId, StaffRecord }
-export { PLANS, SLUG_RE, TIMEZONES, buildSetupChecklist, countMenuItems, deriveBusinessStatus, slugify }
+export type { BusinessRecord, ChecklistItem, MenuCategory, MenuDocument, MenuItem, PlanId, PlanTier, StaffRecord }
+export { PLAN_IDS, SLUG_RE, TIMEZONES, buildSetupChecklist, countMenuItems, deriveBusinessStatus, slugify }
+// Plan pricing/limits now live in the database — see lib/plans.ts (fetchPlanTiers, fetchPlanTier).
 
 export const BUSINESS_SELECT =
   "id, name, slug, status, is_active, plan, owner_email, timezone, address, prep_time_minutes, phone_number, vapi_assistant_id, sms_from_number, ai_greeting, theme_color, menu, menu_published_at, display_pin, display_pin_hash, stripe_customer_id, stripe_subscription_id, subscription_status, current_period_end, created_at, updated_at"

@@ -20,6 +20,11 @@ const ACTION_LABEL: Record<string, string> = {
   "platform_admin.removed": "removed a platform admin",
   "order.status_changed": "changed an order status",
   "order.created": "created an order",
+  "order.deleted": "deleted an order",
+  "business.subscription_started": "started a Stripe subscription",
+  "business.subscription_updated": "updated a Stripe subscription",
+  "business.subscription_canceled": "canceled a Stripe subscription",
+  "plan_tier.updated": "updated a plan's pricing or limits",
 }
 
 export function AuditFeed({ rows, showBusiness }: { rows: AuditRow[]; showBusiness?: boolean }) {

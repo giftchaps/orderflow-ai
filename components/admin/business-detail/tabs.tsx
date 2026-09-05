@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { ChecklistItem, StaffRecord } from "@/lib/business-shared"
+import type { ChecklistItem, PlanTier, StaffRecord } from "@/lib/business-shared"
 import type { AuditRow } from "@/lib/platform-shared"
 import type { Order } from "@/lib/orders"
 import type { BusinessStatus } from "@/lib/auth/session"
@@ -49,6 +49,8 @@ export function BusinessDetailTabs({
   audit,
   activeOrders,
   displayUrl,
+  planTiers,
+  ordersThisMonth,
 }: {
   initialTab?: string
   business: AdminBusiness
@@ -57,6 +59,8 @@ export function BusinessDetailTabs({
   audit: AuditRow[]
   activeOrders: Order[]
   displayUrl: string
+  planTiers: PlanTier[]
+  ordersThisMonth: number
 }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -97,7 +101,7 @@ export function BusinessDetailTabs({
         <DisplayPanel business={business} displayUrl={displayUrl} />
       </TabsContent>
       <TabsContent value="account">
-        <AccountPanel business={business} />
+        <AccountPanel business={business} planTiers={planTiers} ordersThisMonth={ordersThisMonth} />
       </TabsContent>
       <TabsContent value="activity">
         <AuditFeed rows={audit} />
