@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -6,7 +7,7 @@ import Link from "next/link"
 export default async function AdminOrdersPage() {
   const supabase = createSupabaseServerClient()
 
-  const { data: orders } = await supabase
+  const { data: orders, error: ordersError } = await supabase
     .from("orders")
     .select("id, order_number, status, channel, customer_phone, placed_at, items, business_id, businesses(name, slug)")
     .order("placed_at", { ascending: false })
@@ -32,10 +33,26 @@ export default async function AdminOrdersPage() {
       <div>
         <h1 className="text-2xl font-bold">All Orders</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          {orders?.length ?? 0} most recent orders across all businesses
+          {ordersError ? "Couldn't load orders" : `${orders?.length ?? 0} most recent orders across all businesses`}
         </p>
       </div>
 
+      {ordersError && (
+        <Card className="border-destructive/40 bg-destructive/5 p-5 shadow-none">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="font-medium text-destructive">Couldn&apos;t load orders</p>
+              <p className="text-sm text-muted-foreground">{ordersError.message}</p>
+              <Link href="/admin/system" className="text-sm underline">
+                Check system health
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {!ordersError && (
       <Card className="border-border">
         <CardContent className="p-0">
           <div className="rounded-lg overflow-hidden">
@@ -106,6 +123,7 @@ export default async function AdminOrdersPage() {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

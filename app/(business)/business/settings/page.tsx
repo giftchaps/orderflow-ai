@@ -5,6 +5,7 @@ import { getAppUrl } from "@/lib/env"
 import { PageHeader } from "@/components/portal/page-header"
 import { SetupChecklist } from "@/components/portal/setup-checklist"
 import { BusinessSettingsForm } from "@/components/business/settings-form"
+import { BillingPanel } from "@/components/business/billing-panel"
 
 export const metadata = { title: "Settings" }
 
@@ -24,6 +25,12 @@ export default async function SettingsPage() {
         description="Business profile, kitchen display access and your launch checklist."
       />
       <SetupChecklist items={checklist} />
+      <BillingPanel
+        plan={business.plan}
+        subscriptionStatus={business.subscription_status}
+        currentPeriodEnd={business.current_period_end}
+        canManage={ctx.can("billing.manage")}
+      />
       <BusinessSettingsForm business={business} displayUrl={displayUrl} canEdit={ctx.can("settings.edit")} />
     </>
   )

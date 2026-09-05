@@ -30,6 +30,9 @@ export type AdminBusiness = {
   ai_greeting: string | null
   menu: unknown
   menu_published_at: string | null
+  stripe_customer_id: string | null
+  subscription_status: string | null
+  current_period_end: string | null
   created_at: string
   updated_at: string | null
   hasPin: boolean

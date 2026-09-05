@@ -57,6 +57,18 @@ export default async function SystemHealthPage() {
       state: integrations.sms ? "ok" : "off",
     },
     {
+      label: "Billing (Stripe)",
+      description: "Lets businesses subscribe and pay via Stripe Checkout.",
+      state: integrations.stripe && integrations.stripeWebhook && integrations.stripePrices ? "ok" : integrations.stripe ? "warn" : "off",
+      detail: !integrations.stripe
+        ? "STRIPE_SECRET_KEY is not set."
+        : !integrations.stripeWebhook
+          ? "STRIPE_WEBHOOK_SECRET is not set — subscription status won't sync after checkout."
+          : !integrations.stripePrices
+            ? "One or more STRIPE_PRICE_* env vars are missing — checkout will fail for that plan."
+            : undefined,
+    },
+    {
       label: "Order ingest secret",
       description: "Shared secret required on the legacy single-tenant order-ingest endpoint.",
       state: integrations.ingestSecret ? "ok" : "warn",

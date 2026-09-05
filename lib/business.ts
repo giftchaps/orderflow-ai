@@ -23,7 +23,7 @@ export type { BusinessRecord, ChecklistItem, MenuCategory, MenuDocument, MenuIte
 export { PLANS, SLUG_RE, TIMEZONES, buildSetupChecklist, countMenuItems, deriveBusinessStatus, slugify }
 
 export const BUSINESS_SELECT =
-  "id, name, slug, status, is_active, plan, owner_email, timezone, address, prep_time_minutes, phone_number, vapi_assistant_id, sms_from_number, ai_greeting, theme_color, menu, menu_published_at, display_pin, display_pin_hash, created_at, updated_at"
+  "id, name, slug, status, is_active, plan, owner_email, timezone, address, prep_time_minutes, phone_number, vapi_assistant_id, sms_from_number, ai_greeting, theme_color, menu, menu_published_at, display_pin, display_pin_hash, stripe_customer_id, stripe_subscription_id, subscription_status, current_period_end, created_at, updated_at"
 
 /** Resilient select: tolerates databases where newer columns have not been migrated yet. */
 export async function fetchBusiness(where: { id?: string; slug?: string }): Promise<BusinessRecord | null> {
@@ -66,6 +66,10 @@ export async function fetchBusiness(where: { id?: string; slug?: string }): Prom
     menu_published_at: row.menu_published_at ?? null,
     display_pin: row.display_pin ?? null,
     display_pin_hash: row.display_pin_hash ?? null,
+    stripe_customer_id: row.stripe_customer_id ?? null,
+    stripe_subscription_id: row.stripe_subscription_id ?? null,
+    subscription_status: row.subscription_status ?? null,
+    current_period_end: row.current_period_end ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at ?? null,
   }
