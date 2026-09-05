@@ -378,7 +378,12 @@ async def vapi_webhook(request: Request):
     vapi_call_id = message.get("call", {}).get("id") or None
     ended_reason = message.get("endedReason") or message.get("call", {}).get("endedReason")
     recording_url = extract_recording_url(artifact, message)
-    duration_seconds = message.get("durationSeconds") or message.get("call", {}).get("durationSeconds")
+    # Vapi reports this as a float (fractional seconds, e.g. 83.57) but the
+    # column is an integer — inserting the raw float fails with
+    # "invalid input syntax for type integer" (Postgres 22P02). Round to the
+    # nearest whole second, which is all the UI needs anyway.
+    _raw_duration = message.get("durationSeconds") or message.get("call", {}).get("durationSeconds")
+    duration_seconds = int(round(_raw_duration)) if isinstance(_raw_duration, (int, float)) else None
 
     logger.info(
         "Processing end-of-call-report for %s (call_id=%s, business_id=%s, endedReason=%s)",

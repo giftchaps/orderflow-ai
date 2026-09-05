@@ -80,7 +80,16 @@ Rules:
  */
 export async function pushVapiPrompt(business: PromptBusiness & { vapi_assistant_id: string | null }): Promise<void> {
   const { VAPI_API_KEY } = getServerEnv()
-  if (!VAPI_API_KEY || !business.vapi_assistant_id) return
+  if (!VAPI_API_KEY || !business.vapi_assistant_id) {
+    // This used to no-op completely silently — indistinguishable from a
+    // successful push once the caller's own save went through. Log which
+    // precondition was missing so "the assistant never actually updates"
+    // is diagnosable from server logs instead of a mystery.
+    console.error(
+      `[vapi-prompt] Skipping push — ${!VAPI_API_KEY ? "VAPI_API_KEY is not set" : "no vapi_assistant_id on this business"}.`
+    )
+    return
+  }
 
   const body: Record<string, unknown> = {
     model: { provider: "openai", model: "gpt-4o", messages: [{ role: "system", content: buildSystemPrompt(business) }] },
