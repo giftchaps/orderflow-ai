@@ -1,5 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Eye, X } from "lucide-react"
+import { Eye, Moon, Sun, X } from "lucide-react"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Toaster } from "@/components/ui/sonner"
@@ -7,23 +10,53 @@ import { Button } from "@/components/ui/button"
 import { AppSidebar } from "./app-sidebar"
 import { BusinessStatusBadge } from "./status-badge"
 import type { PortalUser } from "./types"
+import { brandStyle } from "@/lib/color-contrast"
+import { cn } from "@/lib/utils"
+
+const THEME_STORAGE_KEY = "orderflow:portal-theme"
 
 export function PortalShell({
   variant,
   user,
+  themeColor,
   children,
 }: {
   variant: "admin" | "business"
   user: PortalUser
+  themeColor?: string | null
   children: React.ReactNode
 }) {
   const activeMembership = user.memberships.find((m) => m.businessId === user.activeBusinessId)
   const businessStatus = activeMembership?.businessStatus
 
+  const [dark, setDark] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(THEME_STORAGE_KEY) === "dark") setDark(true)
+    } catch {
+      // localStorage unavailable (private browsing, etc.) — default to light.
+    }
+  }, [])
+
+  const toggleDark = () => {
+    setDark((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, next ? "dark" : "light")
+      } catch {
+        // Ignore — the preference just won't persist across reloads.
+      }
+      return next
+    })
+  }
+
+  const themeStyle = brandStyle(themeColor)
+
   return (
-    <div className="theme-portal min-h-svh bg-background text-foreground">
+    <div className={cn("theme-portal min-h-svh bg-background text-foreground", dark && "dark")} style={themeStyle}>
       <SidebarProvider>
-        <AppSidebar variant={variant} user={user} />
+        <AppSidebar variant={variant} user={user} dark={dark} themeColor={themeColor} />
         <SidebarInset className="bg-background">
           <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <SidebarTrigger className="-ml-1" />
@@ -36,6 +69,15 @@ export function PortalShell({
                 <BusinessStatusBadge status={businessStatus} compact />
               )}
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={toggleDark}
+              title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
           </header>
 
           {variant === "business" && user.viewingAsAdmin && (

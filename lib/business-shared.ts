@@ -22,6 +22,7 @@ export type BusinessRecord = {
   vapi_assistant_id: string | null
   sms_from_number: string | null
   ai_greeting: string | null
+  theme_color: string | null
   menu: MenuDocument | null
   menu_published_at: string | null
   display_pin: string | null

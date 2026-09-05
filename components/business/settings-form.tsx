@@ -41,6 +41,7 @@ export function BusinessSettingsForm({
     timezone: business.timezone ?? "America/New_York",
     prep_time_minutes: business.prep_time_minutes ?? 15,
     ai_greeting: business.ai_greeting ?? "",
+    theme_color: business.theme_color ?? "",
   })
 
   const save = async (e: React.FormEvent) => {
@@ -53,6 +54,7 @@ export function BusinessSettingsForm({
       if (form.timezone !== business.timezone) body.timezone = form.timezone
       if (form.prep_time_minutes !== business.prep_time_minutes) body.prep_time_minutes = form.prep_time_minutes
       if (form.ai_greeting !== (business.ai_greeting ?? "")) body.ai_greeting = form.ai_greeting || null
+      if (form.theme_color !== (business.theme_color ?? "")) body.theme_color = form.theme_color || null
       if (Object.keys(body).length === 0) return toast.info("No changes to save")
       await api("/api/business", { method: "PATCH", body })
       toast.success("Settings saved")
@@ -63,6 +65,8 @@ export function BusinessSettingsForm({
       setSaving(false)
     }
   }
+
+  const BRAND_PRESETS = ["#d92626", "#c2410c", "#b45309", "#15803d", "#0e7490", "#4338ca", "#a21caf", "#334155"]
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,6 +124,51 @@ export function BusinessSettingsForm({
               disabled={!canEdit}
               placeholder={`Thanks for calling ${business.name}! What can I get started for you?`}
             />
+          </Field>
+
+          <div className="flex flex-col gap-1 border-t border-border pt-5">
+            <p className="font-medium">Branding</p>
+            <p className="text-sm text-muted-foreground">
+              Your accent color, used on the kitchen display and throughout your dashboard.
+            </p>
+          </div>
+
+          <Field label="Brand color" hint="Leave blank to use the OrderFlow default red.">
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="color"
+                value={form.theme_color || "#d92626"}
+                onChange={(e) => setForm({ ...form, theme_color: e.target.value })}
+                disabled={!canEdit}
+                className="h-10 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Input
+                value={form.theme_color}
+                onChange={(e) => setForm({ ...form, theme_color: e.target.value })}
+                placeholder="#d92626"
+                disabled={!canEdit}
+                className="w-32 font-mono text-sm"
+              />
+              {canEdit && form.theme_color && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, theme_color: "" })}>
+                  Reset to default
+                </Button>
+              )}
+              {canEdit && (
+                <div className="flex items-center gap-1.5">
+                  {BRAND_PRESETS.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      title={hex}
+                      onClick={() => setForm({ ...form, theme_color: hex })}
+                      className="size-6 rounded-full border border-black/10 transition-transform hover:scale-110"
+                      style={{ backgroundColor: hex }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </Field>
 
           {canEdit && (

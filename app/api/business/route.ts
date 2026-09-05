@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest) {
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
     if (!body || typeof body !== "object") throw new ApiError(400, "Invalid JSON body.")
 
-    const profile = businessProfileSchema.safeParse(pick(body, ["name", "address", "timezone", "prep_time_minutes", "ai_greeting", "business_hours"]))
+    const profile = businessProfileSchema.safeParse(pick(body, ["name", "address", "timezone", "prep_time_minutes", "ai_greeting", "business_hours", "theme_color"]))
     const pin = "display_pin" in body ? displayPinSchema.safeParse({ display_pin: body.display_pin }) : null
 
     const issues = [profile, pin].flatMap((r) => (r && !r.success ? r.error.issues.map((i) => i.message) : []))

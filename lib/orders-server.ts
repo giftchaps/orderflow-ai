@@ -137,3 +137,27 @@ export async function updateOrderStatus(
     previousStatus: currentStatus,
   }
 }
+
+/**
+ * Permanently delete an order (and its event history, via ON DELETE CASCADE).
+ * Scoped to businessId so one business can never delete another's order even
+ * if it somehow guessed an orderId. Returns the order_number for the caller's
+ * confirmation/audit message, or null if no matching order existed.
+ */
+export async function deleteOrder(businessId: string, orderId: string): Promise<number | null> {
+  const supabase = createSupabaseServerClient()
+
+  const { data: existing, error: existingError } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("id", orderId)
+    .eq("business_id", businessId)
+    .maybeSingle()
+  if (existingError) throw new Error(existingError.message)
+  if (!existing) return null
+
+  const { error } = await supabase.from("orders").delete().eq("id", orderId).eq("business_id", businessId)
+  if (error) throw new Error(error.message)
+
+  return existing.order_number
+}

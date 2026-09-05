@@ -14,6 +14,7 @@ const ROLE_RANK: Record<BusinessRole, number> = { staff: 1, manager: 2, owner: 3
 export type Permission =
   | "orders.view"
   | "orders.update"
+  | "orders.delete"
   | "menu.view"
   | "menu.edit"
   | "menu.publish"
@@ -30,6 +31,7 @@ export type Permission =
 export const PERMISSION_MIN_ROLE: Record<Permission, BusinessRole> = {
   "orders.view": "staff",
   "orders.update": "staff",
+  "orders.delete": "manager",
   "menu.view": "staff",
   "menu.edit": "manager",
   "menu.publish": "manager",

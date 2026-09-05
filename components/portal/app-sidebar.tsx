@@ -46,6 +46,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { createClient } from "@/lib/supabase/client"
 import { ROLE_LABEL, type Permission } from "@/lib/auth/permissions"
 import { cn } from "@/lib/utils"
+import { brandStyle } from "@/lib/color-contrast"
 import type { PortalUser } from "./types"
 import { BusinessStatusBadge } from "./status-badge"
 
@@ -75,7 +76,17 @@ const BUSINESS_NAV: NavItem[] = [
   { label: "Settings", href: "/business/settings", icon: Settings, permission: "settings.view" },
 ]
 
-export function AppSidebar({ variant, user }: { variant: "admin" | "business"; user: PortalUser }) {
+export function AppSidebar({
+  variant,
+  user,
+  dark,
+  themeColor,
+}: {
+  variant: "admin" | "business"
+  user: PortalUser
+  dark?: boolean
+  themeColor?: string | null
+}) {
   const pathname = usePathname()
   const items =
     variant === "admin"
@@ -86,7 +97,7 @@ export function AppSidebar({ variant, user }: { variant: "admin" | "business"; u
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`)
 
   return (
-    <Sidebar collapsible="icon" className="theme-portal">
+    <Sidebar collapsible="icon" className={cn("theme-portal", dark && "dark")} style={brandStyle(themeColor)}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
