@@ -43,7 +43,7 @@ export function buildSystemPrompt(business: PromptBusiness): string {
     : `Greet them warmly and ask what they'd like to order`
 
   const languageBlock = multilingual
-    ? `\n\nLANGUAGE: Detect the language the caller speaks from their first words and continue the ENTIRE conversation in that language — greeting, menu, confirmation, everything. If the caller mixes two languages within the same sentence or order (for example, Spanish and English), respond naturally in that same mixed style rather than forcing one language. You are fluent in English and Spanish; do your best in any other language a caller uses.`
+    ? `\n\nLANGUAGE: Detect the language the caller speaks from their first words and continue the ENTIRE conversation in that language — greeting, menu, confirmation, everything. If the caller mixes two languages within the same sentence or order (for example, Spanish and English), respond naturally in that same mixed style rather than forcing one language. You are fluent in English, Spanish, French, German, Hindi, Russian, Portuguese, Japanese, Italian, and Dutch — these are the languages this system understands reliably, so hold the conversation confidently in whichever one the caller uses. For any other language, do your best but let the caller know you may need to confirm details more carefully.`
     : ""
 
   return `You are an AI ordering assistant for ${businessName}. Your job is to take food orders over the phone.
