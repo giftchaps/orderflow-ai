@@ -21,6 +21,12 @@ export const businessProfileSchema = z.object({
   prep_time_minutes: z.coerce.number().int().min(1).max(240).optional(),
   ai_greeting: z.string().trim().max(400).nullable().optional(),
   business_hours: z.record(z.string(), z.unknown()).nullable().optional(),
+  theme_color: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color like #d92626")
+    .nullable()
+    .optional(),
 })
 
 /** PIN update — separate because it is hashed and audited on its own. */

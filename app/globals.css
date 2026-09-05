@@ -98,8 +98,8 @@
   --card-foreground: oklch(0.17 0.01 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.17 0.01 260);
-  --primary: oklch(0.55 0.2 25);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.945 0.004 260);
   --secondary-foreground: oklch(0.25 0.01 260);
   --muted: oklch(0.945 0.004 260);
@@ -110,7 +110,7 @@
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.9 0.005 260);
   --input: oklch(0.9 0.005 260);
-  --ring: oklch(0.55 0.2 25);
+  --ring: var(--brand);
 
   --brand: oklch(0.55 0.2 25);
   --brand-foreground: oklch(0.99 0 0);
@@ -136,15 +136,106 @@
 
   --sidebar: oklch(0.99 0.002 260);
   --sidebar-foreground: oklch(0.17 0.01 260);
-  --sidebar-primary: oklch(0.55 0.2 25);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
   --sidebar-accent: oklch(0.945 0.004 260);
   --sidebar-accent-foreground: oklch(0.2 0.01 260);
   --sidebar-border: oklch(0.9 0.005 260);
-  --sidebar-ring: oklch(0.55 0.2 25);
+  --sidebar-ring: var(--brand);
 
   background-color: var(--background);
   color: var(--foreground);
+  color-scheme: light;
+}
+
+/* Dark variant of the operations console, toggled client-side (localStorage,
+   per device) via the sidebar's daylight/dark switch — see PortalShell. */
+.theme-portal.dark {
+  --background: oklch(0.14 0.005 260);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.18 0.005 260);
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.18 0.005 260);
+  --popover-foreground: oklch(0.96 0 0);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.24 0.006 260);
+  --secondary-foreground: oklch(0.96 0 0);
+  --muted: oklch(0.24 0.006 260);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.26 0.006 260);
+  --accent-foreground: oklch(0.96 0 0);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.006 260);
+  --input: oklch(0.22 0.006 260);
+  --ring: var(--brand);
+
+  --success: oklch(0.65 0.18 145);
+  --success-foreground: oklch(0.12 0.02 145);
+  --warning: oklch(0.8 0.16 85);
+  --warning-foreground: oklch(0.2 0.04 85);
+  --info: oklch(0.7 0.15 230);
+  --info-foreground: oklch(0.15 0.03 230);
+
+  --status-pending: oklch(0.8 0.16 85);
+  --status-making: oklch(0.65 0.22 25);
+  --status-ready: oklch(0.65 0.18 145);
+  --status-pending-bg: oklch(0.28 0.05 85);
+  --status-making-bg: oklch(0.28 0.06 25);
+  --status-ready-bg: oklch(0.24 0.05 145);
+
+  --sidebar: oklch(0.16 0.005 260);
+  --sidebar-foreground: oklch(0.96 0 0);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.24 0.006 260);
+  --sidebar-accent-foreground: oklch(0.96 0 0);
+  --sidebar-border: oklch(0.28 0.006 260);
+  --sidebar-ring: var(--brand);
+
+  color-scheme: dark;
+}
+
+/* Bright "daylight" variant of the kitchen display, toggled client-side
+   (localStorage, per device) via the header's sun/moon switch — the KDS is
+   dark by default (see :root above), which can be hard to read on a
+   glare-lit kitchen screen during the day. See KitchenDisplay/Header. */
+.kds-light {
+  --background: oklch(0.98 0.003 260);
+  --foreground: oklch(0.17 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0.01 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0.01 260);
+  --primary: oklch(0.17 0.01 260);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.94 0.004 260);
+  --secondary-foreground: oklch(0.25 0.01 260);
+  --muted: oklch(0.94 0.004 260);
+  --muted-foreground: oklch(0.48 0.01 260);
+  --accent: oklch(0.92 0.006 260);
+  --accent-foreground: oklch(0.2 0.01 260);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.88 0.005 260);
+  --input: oklch(0.88 0.005 260);
+  --ring: oklch(0.55 0.01 260);
+
+  --success: oklch(0.55 0.16 150);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.72 0.16 75);
+  --warning-foreground: oklch(0.2 0.04 75);
+  --info: oklch(0.55 0.15 240);
+  --info-foreground: oklch(0.99 0 0);
+
+  --status-pending: oklch(0.72 0.16 75);
+  --status-making: oklch(0.55 0.2 25);
+  --status-ready: oklch(0.55 0.16 150);
+  --status-pending-bg: oklch(0.95 0.05 85);
+  --status-making-bg: oklch(0.95 0.04 25);
+  --status-ready-bg: oklch(0.94 0.05 150);
+
   color-scheme: light;
 }
 

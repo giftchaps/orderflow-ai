@@ -20,6 +20,7 @@ export type AuditAction =
   | "platform_admin.removed"
   | "order.status_changed"
   | "order.created"
+  | "order.deleted"
 
 type AuditInput = {
   action: AuditAction

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { updateOrderStatus } from "@/lib/orders-server"
+import { deleteOrder, updateOrderStatus } from "@/lib/orders-server"
 import { createSupabaseServerClientFromEnv } from "@/lib/supabase/server"
-import { getSession } from "@/lib/auth/session"
+import { apiError, apiRequireSession, ApiError } from "@/lib/auth/guards"
+import { canInBusiness, getSession } from "@/lib/auth/session"
 import { verifyDisplayToken } from "@/lib/kds-token"
+import { logAudit } from "@/lib/audit"
 
 export const dynamic = "force-dynamic"
 
@@ -133,5 +135,39 @@ export async function PATCH(
         : 500
 
     return NextResponse.json({ ok: false, message }, { status })
+  }
+}
+
+/**
+ * DELETE /api/orders/[orderId] — permanently remove one order from history.
+ * Staff-authenticated only (no display-token path): this is a cleanup action
+ * for owners/managers, not something the kitchen tablet's PIN gate should be
+ * able to trigger.
+ */
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ orderId: string }> }) {
+  try {
+    const session = await apiRequireSession()
+    const businessId = session.activeBusinessId
+    if (!businessId) throw new ApiError(403, "No active business.")
+    if (!canInBusiness(session, businessId, "orders.delete")) {
+      throw new ApiError(403, "Your role does not allow deleting orders.")
+    }
+
+    const { orderId } = await params
+    const orderNumber = await deleteOrder(businessId, orderId)
+    if (orderNumber === null) throw new ApiError(404, "Order not found.")
+
+    await logAudit({
+      action: "order.deleted",
+      session,
+      businessId,
+      targetType: "order",
+      targetId: orderId,
+      metadata: { order_number: orderNumber },
+    })
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    return apiError(error)
   }
 }

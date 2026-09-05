@@ -7,6 +7,10 @@ import { OrderColumn } from "@/components/kds/order-column"
 import { OrderToast } from "@/components/kds/order-toast"
 import { getDisplayToken, PinGate, usePinGate } from "@/components/kds/pin-gate"
 import type { Order } from "@/lib/orders"
+import { brandStyle } from "@/lib/color-contrast"
+import { cn } from "@/lib/utils"
+
+const DAYLIGHT_STORAGE_PREFIX = "orderflow:kds-daylight:"
 
 const DEMO_ORDERS: Order[] = [
   {
@@ -140,9 +144,34 @@ function isOrdersErrorResponse(
   return payload.ok === false
 }
 
-export function KitchenDisplay({ slug }: { slug?: string }) {
+export function KitchenDisplay({ slug, themeColor }: { slug?: string; themeColor?: string | null }) {
   const { unlocked, checking } = usePinGate(slug)
   const [pinUnlocked, setPinUnlocked] = useState(false)
+
+  const daylightKey = `${DAYLIGHT_STORAGE_PREFIX}${slug ?? "default"}`
+  const [daylight, setDaylight] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(daylightKey) === "on") setDaylight(true)
+    } catch {
+      // localStorage unavailable — default to the standard dark KDS look.
+    }
+    // Only re-check when the slug (and therefore the storage key) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daylightKey])
+
+  const toggleDaylight = useCallback(() => {
+    setDaylight((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(daylightKey, next ? "on" : "off")
+      } catch {
+        // Ignore — the preference just won't persist across reloads.
+      }
+      return next
+    })
+  }, [daylightKey])
 
   const [orders, setOrders] = useState<Order[]>([])
   const [toast, setToast] = useState<string | null>(null)
@@ -367,8 +396,10 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
     }
   }
 
+  const themeStyle = brandStyle(themeColor)
+
   if (checking) {
-    return <div className="min-h-screen bg-background" />
+    return <div className={cn("min-h-screen bg-background", daylight && "kds-light")} style={themeStyle} />
   }
 
   if (!isUnlocked && slug) {
@@ -380,7 +411,7 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
   const readyOrders = orders.filter((order) => order.status === "ready")
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn("min-h-screen bg-background", daylight && "kds-light")} style={themeStyle}>
       {showConfig && <ConfigDialog onDemo={() => setDemoMode(true)} issues={healthIssuesRef.current} />}
 
       <Header
@@ -390,6 +421,8 @@ export function KitchenDisplay({ slug }: { slug?: string }) {
         onRefresh={!showConfig || demoMode ? handleRefresh : undefined}
         isRefreshing={isRefreshing}
         slug={slug}
+        daylight={daylight}
+        onToggleDaylight={toggleDaylight}
       />
 
       <main className="p-6">

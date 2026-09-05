@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Phone, Wifi, WifiOff, AlertCircle, RefreshCw } from "lucide-react"
+import { Phone, Wifi, WifiOff, AlertCircle, RefreshCw, Sun, Moon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -19,6 +19,8 @@ interface HeaderProps {
   onRefresh?: () => void
   isRefreshing?: boolean
   slug?: string
+  daylight?: boolean
+  onToggleDaylight?: () => void
 }
 
 interface ConnectionConfig {
@@ -114,7 +116,16 @@ function ConnectionIndicator({ status, error }: { status: ConnectionStatus; erro
   )
 }
 
-export function Header({ orderCount, connectionStatus, connectionError, onRefresh, isRefreshing, slug }: HeaderProps) {
+export function Header({
+  orderCount,
+  connectionStatus,
+  connectionError,
+  onRefresh,
+  isRefreshing,
+  slug,
+  daylight,
+  onToggleDaylight,
+}: HeaderProps) {
   const [businessName, setBusinessName] = useState<string>("Kitchen Display")
 
   useEffect(() => {
@@ -130,8 +141,8 @@ export function Header({ orderCount, connectionStatus, connectionError, onRefres
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-[oklch(0.55_0.2_25)] flex items-center justify-center">
-              <Phone className="h-5 w-5 text-white" />
+            <div className="h-10 w-10 rounded-lg bg-brand flex items-center justify-center">
+              <Phone className="h-5 w-5 text-brand-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight">{businessName}</h1>
@@ -143,13 +154,35 @@ export function Header({ orderCount, connectionStatus, connectionError, onRefres
         <div className="flex items-center gap-6">
           <Badge 
             variant="secondary" 
-            className="bg-[oklch(0.55_0.2_25)] hover:bg-[oklch(0.55_0.2_25)] text-white border-0 px-4 py-1.5 text-sm font-semibold"
+            className="bg-brand hover:bg-brand text-brand-foreground border-0 px-4 py-1.5 text-sm font-semibold"
           >
             {orderCount} Active Orders
           </Badge>
           
           <Clock />
-          
+
+          {onToggleDaylight && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onToggleDaylight}
+                    className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                  >
+                    {daylight ? (
+                      <Moon className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Sun className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-card border-border">
+                  <p className="text-sm">{daylight ? "Switch to dark mode" : "Switch to daylight mode"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           {onRefresh && (
             <TooltipProvider>
               <Tooltip>

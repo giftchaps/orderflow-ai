@@ -126,7 +126,7 @@ export function OrderCard({ order, onStatusChange, isNew = false }: OrderCardPro
       <div className="mb-4 space-y-3">
         {order.items.map((item, index) => (
           <div key={`${order.id}-${item.name}-${index}`} className="flex gap-3">
-            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[oklch(0.55_0.2_25)] text-sm font-bold text-white">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-brand text-sm font-bold text-brand-foreground">
               {item.qty}
             </div>
             <div className="min-w-0 flex-1">
@@ -169,7 +169,7 @@ export function OrderCard({ order, onStatusChange, isNew = false }: OrderCardPro
           <>
             <Button
               onClick={() => onStatusChange(order.id, "making")}
-              className="flex-1 bg-[oklch(0.55_0.2_25)] font-semibold text-white hover:bg-[oklch(0.5_0.2_25)]"
+              className="flex-1 bg-brand font-semibold text-brand-foreground hover:bg-brand/90"
             >
               <ChefHat className="mr-2 h-4 w-4" />
               Accept

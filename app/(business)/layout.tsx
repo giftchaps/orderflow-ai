@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { requireBusinessContext } from "@/lib/auth/guards"
 import { toPortalUser } from "@/lib/auth/portal-user"
+import { fetchBusiness } from "@/lib/business"
 import { PortalShell } from "@/components/portal/portal-shell"
 
 export const metadata: Metadata = {
@@ -9,8 +10,9 @@ export const metadata: Metadata = {
 
 export default async function BusinessLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireBusinessContext()
+  const business = await fetchBusiness({ id: ctx.businessId })
   return (
-    <PortalShell variant="business" user={toPortalUser(ctx.session)}>
+    <PortalShell variant="business" user={toPortalUser(ctx.session)} themeColor={business?.theme_color ?? null}>
       {children}
     </PortalShell>
   )
