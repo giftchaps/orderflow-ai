@@ -399,7 +399,7 @@ export function KitchenDisplay({ slug, themeColor }: { slug?: string; themeColor
   const themeStyle = brandStyle(themeColor)
 
   if (checking) {
-    return <div className={cn("min-h-screen bg-background", daylight && "kds-light")} style={themeStyle} />
+    return <div className={cn("min-h-screen bg-background text-foreground", daylight && "kds-light")} style={themeStyle} />
   }
 
   if (!isUnlocked && slug) {
@@ -411,7 +411,7 @@ export function KitchenDisplay({ slug, themeColor }: { slug?: string; themeColor
   const readyOrders = orders.filter((order) => order.status === "ready")
 
   return (
-    <div className={cn("min-h-screen bg-background", daylight && "kds-light")} style={themeStyle}>
+    <div className={cn("min-h-screen bg-background text-foreground", daylight && "kds-light")} style={themeStyle}>
       {showConfig && <ConfigDialog onDemo={() => setDemoMode(true)} issues={healthIssuesRef.current} />}
 
       <Header
