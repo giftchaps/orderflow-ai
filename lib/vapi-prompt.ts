@@ -18,6 +18,37 @@ export type PromptBusiness = {
   multilingual?: boolean | null
 }
 
+// Bread/size options are hardcoded into the prompt (see step 2 below) rather
+// than coming from the menu, so they need to be listed here too rather than
+// picked up automatically by buildKeytermList().
+const BREAD_SIZE_TERMS = ["Hard Roll", "6-inch", "12-inch Sub", "Plain Wrap", "Spinach Wrap", "Whole Wheat Wrap"]
+
+/**
+ * Builds the list of words/phrases to hand Deepgram's keyterm prompting
+ * (https://developers.deepgram.com/docs/keyterm) — up to 100 terms it will
+ * specifically bias toward recognizing correctly. Found while debugging a
+ * real call where "hard roll" kept getting transcribed as "hard growth":
+ * generic speech models default to common-English priors, so an accent,
+ * an unusual pronunciation, or just a deep/quiet voice can push a menu term
+ * toward whatever similar-sounding word is more common in everyday English.
+ * Feeding it the business's own vocabulary up front fixes that regardless of
+ * who's speaking or how, rather than only handling it after the fact via
+ * the "ask them to repeat it" rule in the prompt.
+ */
+function buildKeytermList(menu: MenuDocument | null): string[] {
+  const terms = new Set<string>(BREAD_SIZE_TERMS)
+  for (const cat of menu?.categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (item.active === false) continue
+      if (item.name) terms.add(item.name)
+      for (const alias of item.aliases ?? []) {
+        if (alias) terms.add(alias)
+      }
+    }
+  }
+  return Array.from(terms).slice(0, 100)
+}
+
 export function buildSystemPrompt(business: PromptBusiness): string {
   const { name: businessName, menu, ai_greeting, multilingual } = business
   const categories = menu?.categories ?? []
@@ -95,7 +126,16 @@ export async function pushVapiPrompt(business: PromptBusiness & { vapi_assistant
     model: { provider: "openai", model: "gpt-4o", messages: [{ role: "system", content: buildSystemPrompt(business) }] },
   }
   if (business.multilingual) {
-    body.transcriber = { provider: "deepgram", model: "nova-3", language: "multi" }
+    body.transcriber = {
+      provider: "deepgram",
+      model: "nova-3",
+      language: "multi",
+      // Deepgram's keyterm prompting — biases recognition toward this
+      // business's own menu vocabulary (item names, aliases, bread/size
+      // options) so it's understood correctly regardless of the caller's
+      // accent or pronunciation, not just for the "textbook English" case.
+      keyterm: buildKeytermList(business.menu),
+    }
   }
 
   try {
