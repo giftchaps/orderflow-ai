@@ -90,11 +90,22 @@ export async function pushVapiPrompt(business: PromptBusiness & { vapi_assistant
   }
 
   try {
-    await fetch(`https://api.vapi.ai/assistant/${business.vapi_assistant_id}`, {
+    const res = await fetch(`https://api.vapi.ai/assistant/${business.vapi_assistant_id}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${VAPI_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
+    if (!res.ok) {
+      // Previously unchecked — a rejected PATCH (bad transcriber field,
+      // invalid assistant id, plan restriction, etc.) looked identical to a
+      // successful one from the caller's side. Surface it in server logs so
+      // "I turned on multilingual but it's not working" is debuggable.
+      const detail = await res.text().catch(() => "")
+      console.error(
+        `[vapi-prompt] Vapi rejected the assistant update (HTTP ${res.status}) for ` +
+        `assistant ${business.vapi_assistant_id}: ${detail.slice(0, 500)}`
+      )
+    }
   } catch (err) {
     console.error("[vapi-prompt] push failed:", err)
   }
