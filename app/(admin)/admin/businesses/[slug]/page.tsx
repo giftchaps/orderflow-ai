@@ -8,6 +8,7 @@ import { buildSetupChecklist, deriveBusinessStatus, fetchBusiness, fetchStaff } 
 import { fetchPlanTiers, countOrdersThisMonth } from "@/lib/plans"
 import { listAuditLogs } from "@/lib/platform"
 import { listActiveOrders } from "@/lib/orders-server"
+import { fetchCalls } from "@/lib/calls"
 import { getAppUrl } from "@/lib/env"
 import { BusinessDetailTabs } from "@/components/admin/business-detail/tabs"
 
@@ -29,12 +30,13 @@ export default async function AdminBusinessDetailPage({ params, searchParams }: 
   const business = await fetchBusiness({ slug })
   if (!business) notFound()
 
-  const [staff, audit, activeOrders, planTiers, ordersThisMonth] = await Promise.all([
+  const [staff, audit, activeOrders, planTiers, ordersThisMonth, calls] = await Promise.all([
     fetchStaff(business.id),
     listAuditLogs({ businessId: business.id, limit: 30 }),
     listActiveOrders(business.id),
     fetchPlanTiers(),
     countOrdersThisMonth(business.id),
+    fetchCalls(business.id),
   ])
 
   const status = deriveBusinessStatus(business)
@@ -104,6 +106,7 @@ export default async function AdminBusinessDetailPage({ params, searchParams }: 
         displayUrl={displayUrl}
         planTiers={planTiers}
         ordersThisMonth={ordersThisMonth}
+        calls={calls}
       />
 
       <p className="text-xs text-muted-foreground">

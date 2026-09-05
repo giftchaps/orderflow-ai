@@ -46,7 +46,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (!existing) throw new ApiError(404, "Business not found.")
 
     const profile = businessProfileSchema.safeParse(pick(body, ["name", "address", "timezone", "prep_time_minutes", "ai_greeting", "business_hours"]))
-    const platform = businessPlatformSchema.safeParse(pick(body, ["plan", "phone_number", "sms_from_number", "vapi_assistant_id", "owner_email", "slug"]))
+    const platform = businessPlatformSchema.safeParse(
+      pick(body, ["plan", "phone_number", "sms_from_number", "vapi_assistant_id", "multilingual", "owner_email", "slug"])
+    )
     const pin = "display_pin" in body ? displayPinSchema.safeParse({ display_pin: body.display_pin }) : null
 
     const issues = [profile, platform, pin].flatMap((r) => (r && !r.success ? r.error.issues.map((i) => i.message) : []))

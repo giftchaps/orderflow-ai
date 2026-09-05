@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api-client"
 import type { AdminBusiness } from "./tabs"
 
@@ -20,6 +21,7 @@ export function AgentPanel({ business }: { business: AdminBusiness }) {
     sms_from_number: business.sms_from_number ?? "",
     vapi_assistant_id: business.vapi_assistant_id ?? "",
     ai_greeting: business.ai_greeting ?? "",
+    multilingual: business.multilingual ?? false,
   })
 
   const save = async (e: React.FormEvent) => {
@@ -33,6 +35,7 @@ export function AgentPanel({ business }: { business: AdminBusiness }) {
           sms_from_number: form.sms_from_number.trim() || null,
           vapi_assistant_id: form.vapi_assistant_id.trim() || null,
           ai_greeting: form.ai_greeting.trim() || null,
+          multilingual: form.multilingual,
         },
       })
       toast.success("Agent settings saved")
@@ -94,6 +97,23 @@ export function AgentPanel({ business }: { business: AdminBusiness }) {
               placeholder={`Thanks for calling ${business.name}! What can I get started for you?`}
             />
           </Field>
+
+          <div className="flex items-center justify-between rounded-md border border-border px-3 py-2.5">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="multilingual" className="cursor-pointer">
+                Multilingual mode
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Detects the caller&apos;s language (including mid-call Spanish/English switching) and replies in kind.
+                Also switches this assistant&apos;s transcriber — test it after enabling.
+              </p>
+            </div>
+            <Switch
+              id="multilingual"
+              checked={form.multilingual}
+              onCheckedChange={(v) => setForm({ ...form, multilingual: v })}
+            />
+          </div>
 
           <div className="flex justify-end">
             <Button type="submit" disabled={saving}>

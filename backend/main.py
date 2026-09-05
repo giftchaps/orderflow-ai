@@ -76,6 +76,70 @@ def send_sms(to: str, message: str, from_number: Optional[str] = None) -> None:
     except Exception as e:
         logger.error("SMS send error: %s", e)
 
+MISSED_CALL_REASON_HINTS = ("did-not-answer", "voicemail", "busy", "no-answer")
+
+
+def is_missed_call(ended_reason: Optional[str], transcript: str) -> bool:
+    """
+    True when Vapi's endedReason indicates the call never actually connected
+    to a conversation (voicemail, no answer, busy) AND we have no transcript
+    to back up that a real exchange happened anyway. Used to decide whether
+    to fire a missed-call recovery text — see docs on the feature roadmap
+    feasibility study for why this stays conservative (no SMS for a call
+    that was merely short, or that ended for some other reason).
+    """
+    if transcript or not ended_reason:
+        return False
+    reason = ended_reason.lower()
+    return any(hint in reason for hint in MISSED_CALL_REASON_HINTS)
+
+
+def extract_recording_url(artifact: dict, message: dict) -> Optional[str]:
+    """
+    Vapi's recording location has moved around across payload versions and
+    plan tiers; try the documented/observed spots rather than assuming one.
+    Returns None (never raises) if none match — the call is still logged
+    either way, just without a recording link.
+    """
+    recording = artifact.get("recording") if isinstance(artifact, dict) else None
+    candidates = [
+        artifact.get("recordingUrl") if isinstance(artifact, dict) else None,
+        artifact.get("stereoRecordingUrl") if isinstance(artifact, dict) else None,
+        recording.get("stereoUrl") if isinstance(recording, dict) else None,
+        recording.get("mono", {}).get("combinedUrl") if isinstance(recording, dict) else None,
+        recording.get("videoUrl") if isinstance(recording, dict) else None,
+        message.get("recordingUrl"),
+        message.get("call", {}).get("recordingUrl"),
+    ]
+    for c in candidates:
+        if isinstance(c, str) and c:
+            return c
+    return None
+
+
+def summarize_call(transcript: str, business_name: str) -> Optional[str]:
+    """One short sentence for a business owner skimming their call log. Never raises."""
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Summarize this phone call to {business_name} in ONE short sentence for a "
+                    "restaurant owner skimming a call log. Say whether an order was placed and "
+                    "mention anything notable (a complaint, a question, a wrong number, etc). "
+                    f"Transcript:\n{transcript}"
+                ),
+            }],
+            temperature=0.2,
+            max_tokens=80,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error("Call summary failed: %s", e)
+        return None
+
+
 EXTRACTION_PROMPT_BASE = """You are an order extraction system for {business_name}.
 Extract the food order from this transcript and return a JSON object.
 Return a JSON object with an "items" array.
@@ -310,17 +374,69 @@ async def vapi_webhook(request: Request):
     )
     logger.info("TRANSCRIPT (first 300 chars): %s", transcript[:300] if transcript else "EMPTY")
 
-    if not transcript:
-        logger.warning("Empty transcript received — skipping order extraction")
-        return {"status": "ok"}
-
     # Extract Vapi call ID for idempotency — present at message.call.id
     vapi_call_id = message.get("call", {}).get("id") or None
+    ended_reason = message.get("endedReason") or message.get("call", {}).get("endedReason")
+    recording_url = extract_recording_url(artifact, message)
+    duration_seconds = message.get("durationSeconds") or message.get("call", {}).get("durationSeconds")
 
     logger.info(
-        "Processing end-of-call-report for %s (call_id=%s, business_id=%s)",
-        customer_phone, vapi_call_id, business_id,
+        "Processing end-of-call-report for %s (call_id=%s, business_id=%s, endedReason=%s)",
+        customer_phone, vapi_call_id, business_id, ended_reason,
     )
+
+    # Every call gets logged here — recording, transcript and a short summary
+    # — whether or not it becomes an order. Previously a call with no
+    # transcript (wrong number, hang-up, voicemail) left no trace anywhere.
+    summary = await asyncio.to_thread(summarize_call, transcript, business_name) if transcript else None
+    call_log_row = {
+        "provider": "vapi",
+        "event_type": "end-of-call-report",
+        "external_id": vapi_call_id,
+        "business_id": business_id,
+        "caller_number": customer_phone if customer_phone != "unknown" else None,
+        "transcript": transcript or None,
+        "recording_url": recording_url,
+        "duration_seconds": duration_seconds,
+        "ended_reason": ended_reason,
+        "summary": summary,
+        "payload": body,
+        "status": "processed",
+    }
+
+    def save_call_log():
+        if vapi_call_id:
+            return (
+                supabase.table("webhook_events")
+                .upsert(call_log_row, on_conflict="provider,external_id")
+                .execute()
+            )
+        return supabase.table("webhook_events").insert(call_log_row).execute()
+
+    call_log_id = None
+    try:
+        call_log_result = await asyncio.to_thread(save_call_log)
+        if call_log_result.data:
+            call_log_id = call_log_result.data[0].get("id")
+    except Exception as e:
+        # A logging failure should never block order-taking — log it and move on.
+        logger.error("Failed to write call log for call_id=%s: %s", vapi_call_id, e)
+
+    if not transcript:
+        logger.warning("Empty transcript received — skipping order extraction")
+        # Missed-call recovery: the call never connected to a conversation
+        # (voicemail/no-answer/busy) — text the caller so the business
+        # doesn't just lose the order. Never fires when a transcript exists,
+        # so this can't double up with the order-confirmation text below.
+        if is_missed_call(ended_reason, transcript) and customer_phone and customer_phone != "unknown":
+            callback = f"Call us back at {business_phone}" if business_phone else "Give us a call back"
+            await asyncio.to_thread(
+                send_sms,
+                customer_phone,
+                f"Sorry we missed your call at {business_name}! {callback} to place your order.",
+                business_sms_from,
+            )
+        return {"status": "ok"}
 
     # Extract structured order items via GPT-4o, using this business's own menu
     items = await asyncio.to_thread(extract_order_items, transcript, business_name, business_menu)
@@ -373,6 +489,20 @@ async def vapi_webhook(request: Request):
     if result.data:
         order = result.data[0]
         logger.info("Order saved — id: %s", order.get("id"))
+
+        # Link the call log row (if we managed to write one above) to this order, so the
+        # Calls page can show "Order placed" instead of "No order". Best-effort — a failure
+        # here must never affect the order that was already successfully saved.
+        if call_log_id:
+            try:
+                await asyncio.to_thread(
+                    lambda: supabase.table("webhook_events")
+                    .update({"order_id": order.get("id")})
+                    .eq("id", call_log_id)
+                    .execute()
+                )
+            except Exception as e:
+                logger.error("Failed to link call log %s to order %s: %s", call_log_id, order.get("id"), e)
 
         # Send SMS confirmation to customer, from this business's own number when it has one
         if customer_phone and customer_phone != "unknown":
