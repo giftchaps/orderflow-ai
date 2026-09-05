@@ -104,8 +104,9 @@ export function AgentPanel({ business }: { business: AdminBusiness }) {
                 Multilingual mode
               </Label>
               <p className="text-xs text-muted-foreground">
-                Detects the caller&apos;s language (including mid-call Spanish/English switching) and replies in kind.
-                Also switches this assistant&apos;s transcriber — test it after enabling.
+                Detects the caller&apos;s language — English, Spanish, French, German, Hindi, Russian, Portuguese,
+                Japanese, Italian, or Dutch, including mid-call switching between them — and replies in kind. Also
+                switches this assistant&apos;s transcriber — test it after enabling.
               </p>
             </div>
             <Switch
