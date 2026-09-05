@@ -210,10 +210,12 @@ export function OrderHistoryTable({ initialOrders, canDelete }: { initialOrders:
                     {canDelete && (
                       <td className="px-6 py-4 text-right">
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground hover:text-destructive"
                           onClick={() => setDeleteTarget(order)}
+                          aria-label={`Delete order #${order.order_number}`}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
