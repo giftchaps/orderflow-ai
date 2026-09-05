@@ -7,7 +7,8 @@ import { hashPin, PIN_RE } from "@/lib/kds-token"
 import { logAudit } from "@/lib/audit"
 import { ApiError } from "@/lib/auth/guards"
 import type { Session } from "@/lib/auth/session"
-import { PLAN_IDS, TIMEZONES } from "@/lib/business"
+import { PLAN_IDS, TIMEZONES, fetchBusiness } from "@/lib/business"
+import { pushVapiPrompt } from "@/lib/vapi-prompt"
 
 // ---------------------------------------------------------------------------
 // Schemas — split by who may change what.
@@ -40,6 +41,11 @@ export const businessPlatformSchema = z.object({
   phone_number: z.string().trim().max(32).nullable().optional(),
   sms_from_number: z.string().trim().max(32).nullable().optional(),
   vapi_assistant_id: z.string().trim().max(120).nullable().optional(),
+  // Switches the live assistant's transcriber to a multilingual-capable
+  // provider (see lib/vapi-prompt.ts) — admin-gated rather than an
+  // owner-facing setting since it has real cost/quality implications
+  // worth testing per business before wider rollout.
+  multilingual: z.boolean().optional(),
   owner_email: z.string().trim().email().nullable().optional(),
   slug: z
     .string()
@@ -69,6 +75,10 @@ export async function updateBusinessProfile(
   const supabase = createSupabaseServerClient()
   const { error } = await supabase.from("businesses").update(updates).eq("id", businessId)
   if (error) throw new ApiError(500, error.message)
+
+  // ai_greeting reaches the live assistant only by re-pushing its prompt —
+  // it used to be editable here without ever taking effect on a call.
+  if ("ai_greeting" in updates) await repushVapiPromptFor(businessId)
 
   await logAudit({
     action: "business.updated",
@@ -131,6 +141,14 @@ export async function updateBusinessPlatformFields(
 
   const { error } = await supabase.from("businesses").update(updates).eq("id", businessId)
   if (error) throw new ApiError(500, error.message)
+
+  // Re-push the live prompt when the assistant is (re)connected or
+  // multilingual mode is toggled — otherwise a newly wired-up assistant has
+  // no menu prompt at all until the next unrelated menu save, and toggling
+  // multilingual mode silently does nothing until then either.
+  if ("vapi_assistant_id" in updates || "multilingual" in updates) {
+    await repushVapiPromptFor(businessId)
+  }
 
   // Keep the owner staff row in sync when owner_email changes.
   if (typeof updates.owner_email === "string") {
@@ -213,6 +231,23 @@ export async function setBusinessStatus(
 }
 
 // ---------------------------------------------------------------------------
+
+/** Re-fetches the current business record and re-pushes its prompt to Vapi. Never throws. */
+async function repushVapiPromptFor(businessId: string) {
+  try {
+    const business = await fetchBusiness({ id: businessId })
+    if (!business) return
+    await pushVapiPrompt({
+      name: business.name,
+      menu: business.menu,
+      ai_greeting: business.ai_greeting,
+      multilingual: business.multilingual,
+      vapi_assistant_id: business.vapi_assistant_id,
+    })
+  } catch (err) {
+    console.error("[business-mutations] Vapi re-push failed:", err)
+  }
+}
 
 async function syncOwnerStaffRow(businessId: string, ownerEmail: string) {
   const supabase = createSupabaseServerClient()

@@ -25,7 +25,7 @@ export { PLAN_IDS, SLUG_RE, TIMEZONES, buildSetupChecklist, countMenuItems, deri
 // Plan pricing/limits now live in the database — see lib/plans.ts (fetchPlanTiers, fetchPlanTier).
 
 export const BUSINESS_SELECT =
-  "id, name, slug, status, is_active, plan, owner_email, timezone, address, prep_time_minutes, phone_number, vapi_assistant_id, sms_from_number, ai_greeting, theme_color, menu, menu_published_at, display_pin, display_pin_hash, stripe_customer_id, stripe_subscription_id, subscription_status, current_period_end, created_at, updated_at"
+  "id, name, slug, status, is_active, plan, owner_email, timezone, address, prep_time_minutes, phone_number, vapi_assistant_id, sms_from_number, ai_greeting, multilingual, theme_color, menu, menu_published_at, display_pin, display_pin_hash, stripe_customer_id, stripe_subscription_id, subscription_status, current_period_end, created_at, updated_at"
 
 /** Resilient select: tolerates databases where newer columns have not been migrated yet. */
 export async function fetchBusiness(where: { id?: string; slug?: string }): Promise<BusinessRecord | null> {
@@ -63,6 +63,7 @@ export async function fetchBusiness(where: { id?: string; slug?: string }): Prom
     vapi_assistant_id: row.vapi_assistant_id ?? null,
     sms_from_number: row.sms_from_number ?? null,
     ai_greeting: row.ai_greeting ?? null,
+    multilingual: row.multilingual ?? false,
     theme_color: row.theme_color ?? null,
     menu: (row.menu as MenuDocument | null) ?? null,
     menu_published_at: row.menu_published_at ?? null,

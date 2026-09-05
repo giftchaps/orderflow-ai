@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { ChecklistItem, PlanTier, StaffRecord } from "@/lib/business-shared"
 import type { AuditRow } from "@/lib/platform-shared"
 import type { Order } from "@/lib/orders"
+import type { CallLogRow } from "@/lib/calls-shared"
 import type { BusinessStatus } from "@/lib/auth/session"
 import { OverviewPanel } from "./overview-panel"
 import { AgentPanel } from "./agent-panel"
@@ -12,6 +13,7 @@ import { TeamPanel } from "./team-panel"
 import { DisplayPanel } from "./display-panel"
 import { AccountPanel } from "./account-panel"
 import { AuditFeed } from "@/components/admin/audit-feed"
+import { CallLogTable } from "@/components/portal/call-log-table"
 
 export type AdminBusiness = {
   id: string
@@ -28,6 +30,7 @@ export type AdminBusiness = {
   vapi_assistant_id: string | null
   sms_from_number: string | null
   ai_greeting: string | null
+  multilingual: boolean
   menu: unknown
   menu_published_at: string | null
   stripe_customer_id: string | null
@@ -38,7 +41,7 @@ export type AdminBusiness = {
   hasPin: boolean
 }
 
-const TABS = ["overview", "agent", "team", "display", "account", "activity"] as const
+const TABS = ["overview", "agent", "calls", "team", "display", "account", "activity"] as const
 type Tab = (typeof TABS)[number]
 
 export function BusinessDetailTabs({
@@ -51,6 +54,7 @@ export function BusinessDetailTabs({
   displayUrl,
   planTiers,
   ordersThisMonth,
+  calls,
 }: {
   initialTab?: string
   business: AdminBusiness
@@ -61,6 +65,7 @@ export function BusinessDetailTabs({
   displayUrl: string
   planTiers: PlanTier[]
   ordersThisMonth: number
+  calls: CallLogRow[]
 }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -93,6 +98,9 @@ export function BusinessDetailTabs({
       </TabsContent>
       <TabsContent value="agent">
         <AgentPanel business={business} />
+      </TabsContent>
+      <TabsContent value="calls">
+        <CallLogTable calls={calls} />
       </TabsContent>
       <TabsContent value="team">
         <TeamPanel business={business} staff={staff} />

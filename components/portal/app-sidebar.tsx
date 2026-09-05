@@ -16,6 +16,7 @@ import {
   Settings,
   MonitorPlay,
   CreditCard,
+  PhoneCall,
   LogOut,
   ChevronsUpDown,
   Check,
@@ -72,6 +73,7 @@ const ADMIN_NAV: NavItem[] = [
 const BUSINESS_NAV: NavItem[] = [
   { label: "Overview", href: "/business", icon: LayoutDashboard, exact: true },
   { label: "Orders", href: "/business/orders", icon: ClipboardList, permission: "orders.view" },
+  { label: "Calls", href: "/business/calls", icon: PhoneCall, permission: "orders.view" },
   { label: "Menu", href: "/business/menu", icon: UtensilsCrossed, permission: "menu.view" },
   { label: "Team", href: "/business/staff", icon: Users, permission: "staff.view" },
   { label: "Analytics", href: "/business/analytics", icon: BarChart3, permission: "analytics.view" },
