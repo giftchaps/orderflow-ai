@@ -83,12 +83,12 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   const [
-    { data: businesses },
-    { count: ordersToday },
-    { count: ordersWeek },
-    { count: activeNow },
+    { data: businesses, error: businessesError },
+    { count: ordersToday, error: ordersTodayError },
+    { count: ordersWeek, error: ordersWeekError },
+    { count: activeNow, error: activeNowError },
     todayRevenue,
-    { count: pendingInvites },
+    { count: pendingInvites, error: pendingInvitesError },
     { count: demoRequests },
   ] = await Promise.all([
     supabase.from("businesses").select("id, status, is_active, created_at"),
@@ -107,6 +107,16 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       .select("*", { count: "exact", head: true })
       .then((r) => (r.error ? { count: 0 } : r)),
   ])
+
+  // These are core, always-present tables — unlike audit_logs/demo_requests above
+  // (which may legitimately not exist yet on an older database and degrade to
+  // empty), a failure here means something is actually wrong (bad credentials,
+  // Supabase outage, RLS misconfigured). Surface it instead of silently
+  // rendering "0 businesses" / "0 orders", which reads as real, alarming data
+  // rather than "we couldn't reach the database."
+  const coreError = businessesError || ordersTodayError || ordersWeekError || activeNowError || pendingInvitesError
+  if (coreError) throw new Error(`Could not load platform stats: ${coreError.message}`)
+
   const todayRevenueRows = todayRevenue.data
 
   const byStatus = { active: 0, invited: 0, suspended: 0, draft: 0 }

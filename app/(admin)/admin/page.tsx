@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { Activity, Building2, Inbox, Plus, Receipt, UserPlus } from "lucide-react"
+import { Activity, AlertTriangle, Building2, Inbox, Plus, Receipt, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { PageHeader, Section } from "@/components/portal/page-header"
 import { StatCard, StatGrid } from "@/components/portal/stat-card"
 import { BusinessTable } from "@/components/admin/business-table"
@@ -10,29 +11,50 @@ import { formatMoney, getPlatformStats, listAuditLogs, listBusinesses } from "@/
 export const metadata = { title: "Overview" }
 
 export default async function AdminOverviewPage() {
-  const [stats, businesses, audit] = await Promise.all([
-    getPlatformStats(),
-    listBusinesses(),
-    listAuditLogs({ limit: 12 }),
-  ])
+  const headerProps = {
+    title: "Platform overview",
+    description: "Every tenant on OrderFlow, what they are doing right now, and what still needs your attention.",
+    actions: (
+      <Button asChild>
+        <Link href="/admin/businesses/new">
+          <Plus className="size-4" />
+          Onboard business
+        </Link>
+      </Button>
+    ),
+  }
+
+  let stats, businesses, audit
+  try {
+    ;[stats, businesses, audit] = await Promise.all([getPlatformStats(), listBusinesses(), listAuditLogs({ limit: 12 })])
+  } catch (error) {
+    return (
+      <>
+        <PageHeader {...headerProps} />
+        <Card className="border-destructive/40 bg-destructive/5 p-5 shadow-none">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="font-medium text-destructive">Couldn&apos;t load platform stats</p>
+              <p className="text-sm text-muted-foreground">
+                {error instanceof Error ? error.message : "The database didn't respond. Try refreshing."}
+              </p>
+              <Link href="/admin/system" className="text-sm underline">
+                Check system health
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </>
+    )
+  }
 
   const needsAttention = businesses.filter((b) => b.status === "invited" || b.status === "draft")
   const recent = businesses.slice(0, 8)
 
   return (
     <>
-      <PageHeader
-        title="Platform overview"
-        description="Every tenant on OrderFlow, what they are doing right now, and what still needs your attention."
-        actions={
-          <Button asChild>
-            <Link href="/admin/businesses/new">
-              <Plus className="size-4" />
-              Onboard business
-            </Link>
-          </Button>
-        }
-      />
+      <PageHeader {...headerProps} />
 
       <StatGrid>
         <StatCard
