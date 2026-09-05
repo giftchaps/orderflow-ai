@@ -97,6 +97,17 @@ export function AccountPanel({ business }: { business: AdminBusiness }) {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{PLANS.find((p) => p.id === form.plan)?.description}</p>
+              {business.subscription_status ? (
+                <p className="text-xs text-muted-foreground">
+                  Stripe: <span className="font-medium capitalize">{business.subscription_status.replace(/_/g, " ")}</span>
+                  {business.current_period_end &&
+                    ` · ${business.subscription_status === "canceled" ? "ended" : "renews"} ${new Date(business.current_period_end).toLocaleDateString()}`}
+                  . Changing the plan here relabels it but does not change what Stripe charges — the business changes
+                  that themselves from Settings, or you manage it from their Stripe customer record.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not subscribed via Stripe yet — this label is manual.</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="slug">Slug</Label>

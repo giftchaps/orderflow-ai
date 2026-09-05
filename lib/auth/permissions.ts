@@ -26,6 +26,7 @@ export type Permission =
   | "settings.edit"
   | "display.manage_pin"
   | "analytics.view"
+  | "billing.manage"
 
 /** Minimum role required for each permission. */
 export const PERMISSION_MIN_ROLE: Record<Permission, BusinessRole> = {
@@ -43,6 +44,7 @@ export const PERMISSION_MIN_ROLE: Record<Permission, BusinessRole> = {
   "settings.edit": "owner",
   "display.manage_pin": "manager",
   "analytics.view": "manager",
+  "billing.manage": "owner",
 }
 
 export function roleAtLeast(role: BusinessRole, min: BusinessRole) {

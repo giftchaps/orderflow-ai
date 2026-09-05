@@ -25,6 +25,11 @@ const serverEnvSchema = z.object({
   TELNYX_FROM_NUMBER: z.string().min(1).optional(),
   BACKEND_URL: z.string().url().optional(),
   ORDERFLOW_BUSINESS_ID: z.string().uuid().optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_PRICE_STARTER: z.string().min(1).optional(),
+  STRIPE_PRICE_GROWTH: z.string().min(1).optional(),
+  STRIPE_PRICE_PRO: z.string().min(1).optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
@@ -41,6 +46,11 @@ function readRaw() {
     TELNYX_API_KEY: process.env.TELNYX_API_KEY || undefined,
     TELNYX_FROM_NUMBER: process.env.TELNYX_FROM_NUMBER || undefined,
     BACKEND_URL: process.env.BACKEND_URL || undefined,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || undefined,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || undefined,
+    STRIPE_PRICE_STARTER: process.env.STRIPE_PRICE_STARTER || undefined,
+    STRIPE_PRICE_GROWTH: process.env.STRIPE_PRICE_GROWTH || undefined,
+    STRIPE_PRICE_PRO: process.env.STRIPE_PRICE_PRO || undefined,
     ORDERFLOW_BUSINESS_ID: legacyBusinessId
       ? legacyBusinessId.toLowerCase().startsWith("id:")
         ? legacyBusinessId.slice(3).trim()
@@ -76,6 +86,9 @@ export function getIntegrationStatus() {
     backendUrl: raw.BACKEND_URL ?? null,
     appUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
     legacyBusinessId: Boolean(raw.ORDERFLOW_BUSINESS_ID),
+    stripe: Boolean(raw.STRIPE_SECRET_KEY),
+    stripeWebhook: Boolean(raw.STRIPE_WEBHOOK_SECRET),
+    stripePrices: Boolean(raw.STRIPE_PRICE_STARTER && raw.STRIPE_PRICE_GROWTH && raw.STRIPE_PRICE_PRO),
   }
 }
 

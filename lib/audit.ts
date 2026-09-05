@@ -21,6 +21,9 @@ export type AuditAction =
   | "order.status_changed"
   | "order.created"
   | "order.deleted"
+  | "business.subscription_started"
+  | "business.subscription_updated"
+  | "business.subscription_canceled"
 
 type AuditInput = {
   action: AuditAction
