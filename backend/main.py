@@ -346,7 +346,29 @@ async def vapi_webhook(request: Request):
             )
         return supabase.table("orders").insert(order_data).execute()
 
-    result = await asyncio.to_thread(save_order)
+    try:
+        result = await asyncio.to_thread(save_order)
+    except Exception as e:
+        # This used to be an unhandled exception that crashed the whole webhook with a
+        # raw 500 — one broken upsert (e.g. the ON CONFLICT target not matching a real
+        # unique index) took down every business's order logging, not just this call.
+        # Fall back to a plain insert so the order isn't lost outright, then give up
+        # loudly (but gracefully) if even that fails.
+        logger.error(
+            "Order upsert failed for call_id=%s business_id=%s: %s. Falling back to a plain "
+            "insert so this order isn't lost — if this keeps happening, check that `orders` has "
+            "a real (non-partial) unique index on (business_id, vapi_call_id).",
+            vapi_call_id, business_id, e,
+        )
+        try:
+            result = await asyncio.to_thread(lambda: supabase.table("orders").insert(order_data).execute())
+        except Exception as e2:
+            logger.error(
+                "Fallback insert also failed for call_id=%s business_id=%s: %s — order was NOT "
+                "saved. The transcript and extracted items are in the log above for manual recovery.",
+                vapi_call_id, business_id, e2,
+            )
+            return {"status": "error", "detail": "Could not save order"}
 
     if result.data:
         order = result.data[0]
